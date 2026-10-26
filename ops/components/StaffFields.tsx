@@ -10,6 +10,10 @@ export function StaffFields({ staff }: { staff?: Staff }) {
         <label>電話<input id="phone" name="phone" type="tel" defaultValue={staff?.phone} /></label>
         <label>メール<input id="email" name="email" type="email" defaultValue={staff?.email} /></label>
         <label>
+          チャットワークのルームID
+          <input id="chatwork_room_id" name="chatwork_room_id" type="text" inputMode="numeric" placeholder="例 412345678（チャットのURLを貼っても可）" defaultValue={staff?.chatwork_room_id} />
+        </label>
+        <label>
           状態
           <select id="status" name="status" defaultValue={staff?.status ?? "active"}>
             {Object.entries(STAFF_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

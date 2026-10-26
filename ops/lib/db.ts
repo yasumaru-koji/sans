@@ -86,6 +86,14 @@ CREATE TABLE IF NOT EXISTS payouts (
 );
 `;
 
+// 既存DBに後から足した列
+function migrate(d: DatabaseSync) {
+  const cols = (d.prepare(`PRAGMA table_info(staff)`).all() as { name: string }[]).map((c) => c.name);
+  if (!cols.includes("chatwork_room_id")) {
+    d.exec(`ALTER TABLE staff ADD COLUMN chatwork_room_id TEXT NOT NULL DEFAULT ''`);
+  }
+}
+
 declare global {
   // 開発サーバーの再読み込みで接続を作り直さないように保持する
   var __opsDb: DatabaseSync | undefined;
@@ -98,6 +106,7 @@ export function db(): DatabaseSync {
     const d = new DatabaseSync(file);
     d.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
     d.exec(SCHEMA);
+    migrate(d);
     globalThis.__opsDb = d;
   }
   return globalThis.__opsDb;

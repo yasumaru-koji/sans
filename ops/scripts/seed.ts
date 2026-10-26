@@ -36,7 +36,7 @@ const people = [
   { name: "サンプル 次郎", kana: "さんぷる じろう", areas: ["港区", "新宿区"], days: [1, 2, 3, 4], from: 21 * 60, to: 24 * 60 },
   { name: "サンプル 桜", kana: "さんぷる さくら", areas: ["新宿区"], days: [0, 3, 6], from: 22 * 60, to: 26 * 60 },
 ];
-const base = { phone: "", email: "", status: "active" as const, contract_date: null, invoice_no: "", bank_info: "", note: "サンプル" };
+const base = { phone: "", email: "", chatwork_room_id: "", status: "active" as const, contract_date: null, invoice_no: "", bank_info: "", note: "サンプル" };
 const month = addMonths(currentMonth(), 1);
 for (const p of people) {
   const id = repo.createStaff({ ...base, name: p.name, kana: p.kana });

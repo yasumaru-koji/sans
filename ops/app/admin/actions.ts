@@ -2,10 +2,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, signOut } from "@/lib/auth";
+import { normalizeRoomId, sendChatwork } from "@/lib/chatwork";
 import { KEY_METHODS, STAFF_STATUS, type KeyMethod, type StaffStatus } from "@/lib/constants";
 import { int, ints, parseAvailability, str } from "@/lib/form";
+import { encodeSummary, inviteMessage, notifyPendingOffers } from "@/lib/notify";
 import * as repo from "@/lib/repo";
 import { isMonth } from "@/lib/time";
+import { baseUrl } from "@/lib/url";
 
 function staffInput(fd: FormData): repo.StaffInput {
   const status = str(fd, "status") as StaffStatus;
@@ -14,6 +17,7 @@ function staffInput(fd: FormData): repo.StaffInput {
     kana: str(fd, "kana"),
     phone: str(fd, "phone"),
     email: str(fd, "email"),
+    chatwork_room_id: normalizeRoomId(str(fd, "chatwork_room_id")),
     status: status in STAFF_STATUS ? status : "active",
     contract_date: str(fd, "contract_date") || null,
     invoice_no: str(fd, "invoice_no"),
@@ -35,6 +39,14 @@ export async function updateStaffAction(id: number, fd: FormData) {
   repo.updateStaff(id, staffInput(fd));
   revalidatePath(`/admin/staff/${id}`);
   redirect(`/admin/staff/${id}?saved=1`);
+}
+
+export async function sendInviteAction(id: number) {
+  await requireAdmin();
+  const staff = repo.getStaff(id);
+  if (!staff) redirect("/admin/staff");
+  const r = await sendChatwork(staff.chatwork_room_id, inviteMessage(await baseUrl(), staff));
+  redirect(`/admin/staff/${id}?invite=${r}`);
 }
 
 export async function regenerateTokenAction(id: number) {
@@ -95,7 +107,8 @@ export async function planMonthAction(fd: FormData) {
   const month = str(fd, "month");
   if (!isMonth(month)) throw new Error("月の指定が正しくありません");
   const r = repo.planAndOfferMonth(month);
-  redirect(`/admin/jobs?month=${month}&offered=${r.offered}&unfilled=${r.unfilled}`);
+  const cw = await notifyPendingOffers(await baseUrl(), r.staffIds);
+  redirect(`/admin/jobs?month=${month}&offered=${r.offered}&unfilled=${r.unfilled}&cw=${encodeSummary(cw)}`);
 }
 
 export async function addJobAction(fd: FormData) {
@@ -107,8 +120,9 @@ export async function addJobAction(fd: FormData) {
 
 export async function offerAction(jobId: number, fd: FormData) {
   await requireAdmin();
-  const n = repo.createOffers(jobId, ints(fd, "staff_id"));
-  redirect(`/admin/jobs/${jobId}?offered=${n}`);
+  const ids = repo.createOffers(jobId, ints(fd, "staff_id"));
+  const cw = await notifyPendingOffers(await baseUrl(), ids);
+  redirect(`/admin/jobs/${jobId}?offered=${ids.length}&cw=${encodeSummary(cw)}`);
 }
 
 export async function withdrawOfferAction(jobId: number, offerId: number) {

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CopyText } from "@/components/CopyText";
 import { JobPill, OfferPill } from "@/components/ui";
 import { KEY_METHODS } from "@/lib/constants";
+import { decodeSummary, summaryText } from "@/lib/notify";
 import * as repo from "@/lib/repo";
 import { dateLabel, minutesToLabel, yen } from "@/lib/time";
 import { baseUrl } from "@/lib/url";
@@ -13,7 +14,7 @@ export default async function JobDetail({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ offered?: string }>;
+  searchParams: Promise<{ offered?: string; cw?: string }>;
 }) {
   const { id } = await params;
   const sp = await searchParams;
@@ -34,7 +35,11 @@ export default async function JobDetail({
         <h1>{dateLabel(job.date)} {job.shop_name}</h1>
         <Link href={`/admin/jobs?month=${month}`}>案件一覧へ</Link>
       </div>
-      {sp.offered != null && <p className="notice good">{sp.offered}人に打診しました。本人に個人用URLから回答するよう連絡してください。</p>}
+      {sp.offered != null && (
+        <p className="notice good">
+          {sp.offered}人に打診しました。{(() => { const cw = decodeSummary(sp.cw); return cw && summaryText(cw); })()}
+        </p>
+      )}
 
       <section className="card">
         <div className="row"><JobPill status={job.status} />{job.staff_name && <strong>担当：{job.staff_name}</strong>}</div>
@@ -139,7 +144,7 @@ export default async function JobDetail({
         )}
         {pending.length > 0 && (
           <details>
-            <summary>回答待ちのスタッフに送るURL</summary>
+            <summary>手動で送る文面（チャットワークに届いていない人向け）</summary>
             <div className="stack" style={{ marginTop: 8 }}>
               {pending.map((o) => (
                 <div key={o.id} className="stack">

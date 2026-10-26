@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { JobPill, MonthNav } from "@/components/ui";
 import { JOB_STATUS, type JobStatus } from "@/lib/constants";
+import { decodeSummary, summaryText } from "@/lib/notify";
 import * as repo from "@/lib/repo";
 import { currentMonth, dateLabel, isMonth, minutesToLabel, monthLabel } from "@/lib/time";
 import { addJobAction, generateJobsAction, planMonthAction } from "../actions";
@@ -8,7 +9,7 @@ import { addJobAction, generateJobsAction, planMonthAction } from "../actions";
 export default async function Jobs({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; shop?: string; status?: string; generated?: string; offered?: string; unfilled?: string }>;
+  searchParams: Promise<{ month?: string; shop?: string; status?: string; generated?: string; offered?: string; unfilled?: string; cw?: string }>;
 }) {
   const sp = await searchParams;
   const month = isMonth(sp.month) ? sp.month : currentMonth();
@@ -17,6 +18,7 @@ export default async function Jobs({
   const shops = repo.listShops();
   const jobs = repo.listJobs(month, { shopId, status });
   const openCount = repo.listJobs(month, { status: "open" }).length;
+  const cw = decodeSummary(sp.cw);
 
   return (
     <main className="page">
@@ -30,7 +32,7 @@ export default async function Jobs({
         <p className="notice good">
           {sp.offered}件を打診しました。
           {Number(sp.unfilled) > 0 && ` 条件に合うスタッフがいない案件が${sp.unfilled}件あります。`}
-          スタッフにはLINEなどで「回答をお願いします」と連絡してください。
+          {cw && summaryText(cw)}
         </p>
       )}
 

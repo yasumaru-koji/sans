@@ -1,0 +1,85 @@
+// スタッフへのチャットワーク通知の文面と送信
+import { sendChatwork, type SendResult } from "./chatwork";
+import { KEY_METHODS } from "./constants";
+import * as repo from "./repo";
+import { dateLabel, minutesToLabel, yen } from "./time";
+
+export type NotifySummary = { sent: number; noRoom: number; failed: number; noToken: boolean };
+
+function summarize(results: SendResult[]): NotifySummary {
+  return {
+    sent: results.filter((r) => r === "sent").length,
+    noRoom: results.filter((r) => r === "no_room").length,
+    failed: results.filter((r) => r === "failed").length,
+    noToken: results.includes("no_token"),
+  };
+}
+
+export function staffPageUrl(base: string, staff: repo.Staff): string {
+  return `${base}/s/${staff.token}`;
+}
+
+export function inviteMessage(base: string, staff: repo.Staff): string {
+  return [
+    `${staff.name}さん`,
+    "締め作業スタッフ用のページです。毎月の入れる日の登録と、案件への参加・辞退の回答はここからお願いします。",
+    staffPageUrl(base, staff),
+  ].join("\n");
+}
+
+export function offersMessage(base: string, staff: repo.Staff, offers: repo.StaffOffer[]): string {
+  const lines = offers.map(
+    (o) => `・${dateLabel(o.date)} ${minutesToLabel(o.start_time)}〜 ${o.area} ${yen(o.pay + o.bonus)}`,
+  );
+  return [
+    `[info][title]${staff.name}さん 締め作業のご依頼（回答待ち${offers.length}件）[/title]${lines.join("\n")}[/info]`,
+    "参加できるかどうか、下のページから回答をお願いします。",
+    staffPageUrl(base, staff),
+  ].join("\n");
+}
+
+/** 指定したスタッフに、いま回答待ちの依頼をまとめて送る */
+export async function notifyPendingOffers(base: string, staffIds: number[]): Promise<NotifySummary> {
+  const results: SendResult[] = [];
+  for (const id of new Set(staffIds)) {
+    const staff = repo.getStaff(id);
+    if (!staff) continue;
+    const offers = repo.pendingOffersForStaff(id);
+    if (offers.length === 0) continue;
+    results.push(await sendChatwork(staff.chatwork_room_id, offersMessage(base, staff, offers)));
+  }
+  return summarize(results);
+}
+
+/** 参加で確定したことを本人に送る（住所と鍵の情報つき） */
+export async function notifyCommitted(base: string, staff: repo.Staff, jobIds: number[]): Promise<void> {
+  const jobs = jobIds.map((id) => repo.getJob(id)).filter((j): j is repo.Job => !!j);
+  if (jobs.length === 0) return;
+  const lines = jobs.map(
+    (j) => `・${dateLabel(j.date)} ${minutesToLabel(j.start_time)}〜 ${j.shop_name}（${j.address}）鍵：${KEY_METHODS[j.key_method]}`,
+  );
+  await sendChatwork(
+    staff.chatwork_room_id,
+    [`[info][title]確定しました（${jobs.length}件）[/title]${lines.join("\n")}[/info]`, `詳細：${staffPageUrl(base, staff)}`].join("\n"),
+  );
+}
+
+/** 画面に出す送信結果の一文 */
+export function summaryText(s: NotifySummary): string {
+  if (s.noToken) return "チャットワーク連携が未設定のため、通知は送っていません。";
+  const parts = [`チャットワークで${s.sent}人に通知しました。`];
+  if (s.noRoom) parts.push(`ルームID未登録の${s.noRoom}人には送れていません。`);
+  if (s.failed) parts.push(`${s.failed}人は送信に失敗しました（ルームIDと、本部アカウントがそのチャットに入っているかを確認してください）。`);
+  return parts.join("");
+}
+
+/** 送信結果を画面遷移のクエリで受け渡す */
+export function encodeSummary(s: NotifySummary): string {
+  return [s.sent, s.noRoom, s.failed, s.noToken ? 1 : 0].join("-");
+}
+
+export function decodeSummary(v: string | undefined): NotifySummary | null {
+  const m = v?.match(/^(\d+)-(\d+)-(\d+)-([01])$/);
+  if (!m) return null;
+  return { sent: Number(m[1]), noRoom: Number(m[2]), failed: Number(m[3]), noToken: m[4] === "1" };
+}

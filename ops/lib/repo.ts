@@ -11,6 +11,7 @@ export type Staff = {
   kana: string;
   phone: string;
   email: string;
+  chatwork_room_id: string;
   status: StaffStatus;
   contract_date: string | null;
   invoice_no: string;
@@ -108,9 +109,9 @@ export function getStaffByToken(token: string): Staff | undefined {
 export function createStaff(input: StaffInput): number {
   const token = crypto.randomBytes(18).toString("base64url");
   const r = run(
-    `INSERT INTO staff (name, kana, phone, email, status, contract_date, invoice_no, bank_info, note, token)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    input.name, input.kana, input.phone, input.email, input.status, input.contract_date,
+    `INSERT INTO staff (name, kana, phone, email, chatwork_room_id, status, contract_date, invoice_no, bank_info, note, token)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    input.name, input.kana, input.phone, input.email, input.chatwork_room_id, input.status, input.contract_date,
     input.invoice_no, input.bank_info, input.note, token,
   );
   return Number(r.lastInsertRowid);
@@ -118,9 +119,9 @@ export function createStaff(input: StaffInput): number {
 
 export function updateStaff(id: number, input: StaffInput) {
   run(
-    `UPDATE staff SET name = ?, kana = ?, phone = ?, email = ?, status = ?, contract_date = ?,
+    `UPDATE staff SET name = ?, kana = ?, phone = ?, email = ?, chatwork_room_id = ?, status = ?, contract_date = ?,
        invoice_no = ?, bank_info = ?, note = ? WHERE id = ?`,
-    input.name, input.kana, input.phone, input.email, input.status, input.contract_date,
+    input.name, input.kana, input.phone, input.email, input.chatwork_room_id, input.status, input.contract_date,
     input.invoice_no, input.bank_info, input.note, id,
   );
 }
@@ -402,8 +403,9 @@ export function candidatesForJob(jobId: number) {
   return rankCandidates(toMatchJob(job), staff);
 }
 
-export function createOffers(jobId: number, staffIds: number[]): number {
-  let n = 0;
+/** 打診を作り、新しく打診したスタッフのIDを返す */
+export function createOffers(jobId: number, staffIds: number[]): number[] {
+  const offered: number[] = [];
   tx(() => {
     const job = get<{ status: JobStatus }>(`SELECT status FROM jobs WHERE id = ?`, jobId);
     if (!job || !["open", "offered"].includes(job.status)) return;
@@ -411,11 +413,11 @@ export function createOffers(jobId: number, staffIds: number[]): number {
       const dup = get(`SELECT 1 FROM offers WHERE job_id = ? AND staff_id = ? AND status = 'pending'`, jobId, staffId);
       if (dup) continue;
       run(`INSERT INTO offers (job_id, staff_id) VALUES (?, ?)`, jobId, staffId);
-      n++;
+      offered.push(staffId);
     }
-    if (n > 0) run(`UPDATE jobs SET status = 'offered' WHERE id = ? AND status = 'open'`, jobId);
+    if (offered.length > 0) run(`UPDATE jobs SET status = 'offered' WHERE id = ? AND status = 'open'`, jobId);
   });
-  return n;
+  return offered;
 }
 
 export function withdrawOffer(offerId: number) {
@@ -437,12 +439,17 @@ function resetIfNoPending(jobId: number) {
 }
 
 /** 月次の割当案を作り、未割当の案件に1人ずつ打診する */
-export function planAndOfferMonth(month: string): { offered: number; unfilled: number } {
+export function planAndOfferMonth(month: string): { offered: number; unfilled: number; staffIds: number[] } {
   const open = listJobs(month, { status: "open" });
   const plan = planAssignments(open.map(toMatchJob), loadMatchStaff(month));
+  const staffIds = new Set<number>();
   let offered = 0;
-  for (const p of plan) offered += createOffers(p.jobId, [p.staffId]);
-  return { offered, unfilled: open.length - plan.length };
+  for (const p of plan) {
+    const ids = createOffers(p.jobId, [p.staffId]);
+    offered += ids.length;
+    ids.forEach((id) => staffIds.add(id));
+  }
+  return { offered, unfilled: open.length - plan.length, staffIds: [...staffIds] };
 }
 
 export type RespondResult = "committed" | "declined" | "taken" | "invalid";

@@ -34,7 +34,7 @@ beforeAll(() => {
     note: "",
     active: 1,
   });
-  const base = { kana: "", phone: "", email: "", status: "active" as const, contract_date: null, invoice_no: "", bank_info: "", note: "" };
+  const base = { kana: "", phone: "", email: "", chatwork_room_id: "", status: "active" as const, contract_date: null, invoice_no: "", bank_info: "", note: "" };
   a = createStaff({ ...base, name: "佐藤" });
   b = createStaff({ ...base, name: "鈴木" });
   const av = { month, areas: ["渋谷区"], weekdays: [], timeFrom: 20 * 60, timeTo: 25 * 60, maxJobs: null, note: "" };
@@ -51,7 +51,7 @@ describe("案件の作成とマッチング", () => {
   it("最初に参加した人で確定し、他の打診は締め切る", () => {
     const job = listJobs(month).find((j) => j.date === "2026-11-02")!;
     expect(candidatesForJob(job.id).filter((c) => c.eligible).map((c) => c.name).sort()).toEqual(["佐藤", "鈴木"]);
-    expect(createOffers(job.id, [a, b])).toBe(2);
+    expect(createOffers(job.id, [a, b])).toEqual([a, b]);
     expect(getJob(job.id)!.status).toBe("offered");
 
     const offerB = pendingOffersForStaff(b)[0];
@@ -71,7 +71,7 @@ describe("案件の作成とマッチング", () => {
 
   it("月次の割当案で登録済みの日だけ打診する", () => {
     const r = planAndOfferMonth(month);
-    expect(r.offered).toBe(1); // 11/6 の鈴木だけ
+    expect(r).toMatchObject({ offered: 1, staffIds: [b] }); // 11/6 の鈴木だけ
     expect(pendingOffersForStaff(b).map((o) => o.date)).toEqual(["2026-11-06"]);
   });
 

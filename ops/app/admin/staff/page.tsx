@@ -25,13 +25,14 @@ export default async function StaffList({ searchParams }: { searchParams: Promis
       ) : (
         <div className="table-wrap">
           <table>
-            <thead><tr><th>氏名</th><th>状態</th><th>{monthLabel(month)}の予定</th><th>契約日</th><th>インボイス</th></tr></thead>
+            <thead><tr><th>氏名</th><th>状態</th><th>{monthLabel(month)}の予定</th><th>チャットワーク</th><th>契約日</th><th>インボイス</th></tr></thead>
             <tbody>
               {staff.map((s) => (
                 <tr key={s.id}>
                   <td><Link href={`/admin/staff/${s.id}?month=${month}`}>{s.name}</Link>{s.kana && <div className="small muted">{s.kana}</div>}</td>
                   <td><StaffPill status={s.status} /></td>
                   <td>{s.month_registered ? <span className="num">{s.month_dates}日</span> : <span className="pill open">未登録</span>}</td>
+                  <td>{s.chatwork_room_id ? "登録済み" : <span className="pill open">未登録</span>}</td>
                   <td className="num nowrap">{s.contract_date ?? "—"}</td>
                   <td>{s.invoice_no ? "登録あり" : <span className="muted">なし</span>}</td>
                 </tr>

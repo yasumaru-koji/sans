@@ -1,7 +1,9 @@
 "use server";
 import { redirect } from "next/navigation";
 import { parseAvailability } from "@/lib/form";
+import { notifyCommitted } from "@/lib/notify";
 import * as repo from "@/lib/repo";
+import { baseUrl } from "@/lib/url";
 
 function staffOrThrow(token: string) {
   const s = repo.getStaffByToken(token);
@@ -11,7 +13,9 @@ function staffOrThrow(token: string) {
 
 export async function respondAction(token: string, offerId: number, accept: boolean) {
   const s = staffOrThrow(token);
+  const jobId = repo.pendingOffersForStaff(s.id).find((o) => o.offer_id === offerId)?.id;
   const r = repo.respondOffer(s.id, offerId, accept);
+  if (r === "committed" && jobId) await notifyCommitted(await baseUrl(), s, [jobId]);
   redirect(`/s/${token}?r=${r}`);
 }
 
@@ -25,12 +29,13 @@ export async function saveAvailabilityAction(token: string, fd: FormData) {
 /** 月次の割当で届いた依頼にまとめて参加する */
 export async function acceptAllAction(token: string) {
   const s = staffOrThrow(token);
-  let committed = 0;
+  const committed: number[] = [];
   let taken = 0;
   for (const o of repo.pendingOffersForStaff(s.id)) {
     const r = repo.respondOffer(s.id, o.offer_id, true);
-    if (r === "committed") committed++;
+    if (r === "committed") committed.push(o.id);
     else taken++;
   }
-  redirect(`/s/${token}?all=${committed}&taken=${taken}`);
+  await notifyCommitted(await baseUrl(), s, committed);
+  redirect(`/s/${token}?all=${committed.length}&taken=${taken}`);
 }

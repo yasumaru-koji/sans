@@ -4,17 +4,19 @@ import { AvailabilityForm } from "@/components/AvailabilityForm";
 import { CopyText } from "@/components/CopyText";
 import { StaffFields } from "@/components/StaffFields";
 import { JobPill, MonthNav } from "@/components/ui";
+import { chatworkEnabled } from "@/lib/chatwork";
+import { inviteMessage } from "@/lib/notify";
 import * as repo from "@/lib/repo";
 import { addMonths, currentMonth, dateLabel, isMonth, minutesToLabel, monthLabel, todayJst } from "@/lib/time";
 import { baseUrl } from "@/lib/url";
-import { regenerateTokenAction, saveStaffAvailabilityAction, updateStaffAction } from "../../actions";
+import { regenerateTokenAction, saveStaffAvailabilityAction, sendInviteAction, updateStaffAction } from "../../actions";
 
 export default async function StaffDetail({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ month?: string; saved?: string; created?: string; token?: string }>;
+  searchParams: Promise<{ month?: string; saved?: string; created?: string; token?: string; invite?: string }>;
 }) {
   const { id } = await params;
   const sp = await searchParams;
@@ -24,8 +26,16 @@ export default async function StaffDetail({
   const availability = repo.getAvailability(staff.id, month);
   const prev = repo.getAvailability(staff.id, addMonths(month, -1));
   const jobs = repo.jobsForStaff(staff.id, `${month}-01`).filter((j) => j.date.startsWith(month));
-  const url = `${await baseUrl()}/s/${staff.token}`;
-  const invite = `${staff.name}さん\n締め作業スタッフ用のページです。毎月の入れる日の登録と、案件への参加・辞退の回答はここからお願いします。\n${url}`;
+  const base = await baseUrl();
+  const url = `${base}/s/${staff.token}`;
+  const invite = inviteMessage(base, staff);
+  const inviteResult: Record<string, { text: string; tone: string }> = {
+    sent: { text: "チャットワークで個人用URLを送りました。", tone: "good" },
+    no_token: { text: "チャットワーク連携が未設定です（CHATWORK_API_TOKEN）。", tone: "bad" },
+    no_room: { text: "ルームIDが未登録です。下の登録情報に入れてください。", tone: "bad" },
+    failed: { text: "送信に失敗しました。ルームIDと、本部アカウントがそのチャットに入っているかを確認してください。", tone: "bad" },
+  };
+  const ir = sp.invite ? inviteResult[sp.invite] : undefined;
 
   return (
     <main className="page">
@@ -36,17 +46,24 @@ export default async function StaffDetail({
       {sp.created && <p className="notice good">登録しました。下の個人用URLを本人に送ってください。</p>}
       {sp.saved && <p className="notice good">保存しました。</p>}
       {sp.token && <p className="notice">URLを作り直しました。古いURLは使えません。</p>}
+      {ir && <p className={`notice ${ir.tone}`}>{ir.text}</p>}
 
       <section className="card">
         <h2>個人用URL</h2>
         <CopyText text={url} />
+        <div className="row">
+          <form action={sendInviteAction.bind(null, staff.id)}>
+            <button type="submit" disabled={!chatworkEnabled() || !staff.chatwork_room_id}>チャットワークで本人に送る</button>
+          </form>
+          <form action={regenerateTokenAction.bind(null, staff.id)}>
+            <button type="submit" className="danger">URLを作り直す（紛失・退職時）</button>
+          </form>
+        </div>
+        {!staff.chatwork_room_id && <p className="small muted">チャットワークのルームIDを登録すると、案件の打診がチャットワークに自動で届きます。</p>}
         <details>
-          <summary>LINEで送る文面</summary>
+          <summary>手動で送る文面</summary>
           <div style={{ marginTop: 8 }}><CopyText text={invite} label="文面をコピー" /></div>
         </details>
-        <form action={regenerateTokenAction.bind(null, staff.id)}>
-          <button type="submit" className="danger">URLを作り直す（紛失・退職時）</button>
-        </form>
       </section>
 
       <section className="card">
