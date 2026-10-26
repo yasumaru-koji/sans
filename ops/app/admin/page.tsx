@@ -23,8 +23,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
       <div className="stats">
         <div className="stat"><span>案件（中止を除く）</span><b>{total}</b></div>
-        <div className="stat"><span>未割当</span><b>{s.by.open ?? 0}</b></div>
-        <div className="stat"><span>打診中</span><b>{s.by.offered ?? 0}</b></div>
+        <div className="stat"><span>未案内</span><b>{s.by.open ?? 0}</b></div>
+        <div className="stat"><span>募集中</span><b>{s.by.offered ?? 0}</b></div>
         <div className="stat"><span>確定</span><b>{s.by.committed ?? 0}</b></div>
         <div className="stat"><span>完了</span><b>{s.by.completed ?? 0}</b></div>
         <div className="stat"><span>売上見込み（税抜）</span><b>{yen(s.revenue.fee)}</b></div>
@@ -66,7 +66,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         </p>
         <div className="row">
           <Link className="btn secondary" href={`/admin/staff?month=${next}`}>登録状況を見る</Link>
-          <Link className="btn" href={`/admin/jobs?month=${next}`}>{monthLabel(next)}の案件を作る・割り当てる</Link>
+          <Link className="btn" href={`/admin/jobs?month=${next}`}>{monthLabel(next)}の案件を作る・マッチングする</Link>
         </div>
       </section>
     </main>

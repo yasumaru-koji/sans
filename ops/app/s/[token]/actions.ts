@@ -1,9 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { parseAvailability } from "@/lib/form";
-import { notifyCommitted } from "@/lib/notify";
 import * as repo from "@/lib/repo";
-import { baseUrl } from "@/lib/url";
 
 function staffOrThrow(token: string) {
   const s = repo.getStaffByToken(token);
@@ -11,11 +9,26 @@ function staffOrThrow(token: string) {
   return s;
 }
 
-export async function respondAction(token: string, offerId: number, accept: boolean) {
+/** 案内への回答。interested=false は見送り（希望の取り消しも含む） */
+export async function respondAction(token: string, offerId: number, interested: boolean) {
   const s = staffOrThrow(token);
-  const jobId = repo.pendingOffersForStaff(s.id).find((o) => o.offer_id === offerId)?.id;
-  const r = repo.respondOffer(s.id, offerId, accept);
-  if (r === "committed" && jobId) await notifyCommitted(await baseUrl(), s, [jobId]);
+  const r = repo.respondOffer(s.id, offerId, interested);
+  redirect(`/s/${token}?r=${r}`);
+}
+
+/** 案内が届いている案件すべてに稼働を希望する */
+export async function interestAllAction(token: string) {
+  const s = staffOrThrow(token);
+  let n = 0;
+  for (const o of repo.pendingOffersForStaff(s.id)) {
+    if (repo.respondOffer(s.id, o.offer_id, true) === "interested") n++;
+  }
+  redirect(`/s/${token}?all=${n}`);
+}
+
+export async function applyOpenCallAction(token: string, jobId: number) {
+  const s = staffOrThrow(token);
+  const r = repo.applyOpenCall(s.id, jobId);
   redirect(`/s/${token}?r=${r}`);
 }
 
@@ -24,18 +37,4 @@ export async function saveAvailabilityAction(token: string, fd: FormData) {
   const a = parseAvailability(fd);
   repo.saveAvailability(s.id, a);
   redirect(`/s/${token}/availability?month=${a.month}&saved=1`);
-}
-
-/** 月次の割当で届いた依頼にまとめて参加する */
-export async function acceptAllAction(token: string) {
-  const s = staffOrThrow(token);
-  const committed: number[] = [];
-  let taken = 0;
-  for (const o of repo.pendingOffersForStaff(s.id)) {
-    const r = repo.respondOffer(s.id, o.offer_id, true);
-    if (r === "committed") committed.push(o.id);
-    else taken++;
-  }
-  await notifyCommitted(await baseUrl(), s, committed);
-  redirect(`/s/${token}?all=${committed.length}&taken=${taken}`);
 }

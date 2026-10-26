@@ -1,15 +1,19 @@
 import Link from "next/link";
 import { JobPill, MonthNav } from "@/components/ui";
 import { JOB_STATUS, type JobStatus } from "@/lib/constants";
+import { chatworkEnabled } from "@/lib/chatwork";
 import { decodeSummary, summaryText } from "@/lib/notify";
 import * as repo from "@/lib/repo";
 import { currentMonth, dateLabel, isMonth, minutesToLabel, monthLabel } from "@/lib/time";
-import { addJobAction, generateJobsAction, planMonthAction } from "../actions";
+import { addJobAction, confirmMonthAction, generateJobsAction, inviteMonthAction, openCallMonthAction } from "../actions";
 
 export default async function Jobs({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; shop?: string; status?: string; generated?: string; offered?: string; unfilled?: string; cw?: string }>;
+  searchParams: Promise<{
+    month?: string; shop?: string; status?: string; generated?: string; invited?: string; jobs?: string; nomatch?: string;
+    confirmed?: string; opencall?: string; cw?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const month = isMonth(sp.month) ? sp.month : currentMonth();
@@ -17,7 +21,9 @@ export default async function Jobs({
   const status = sp.status && sp.status in JOB_STATUS ? (sp.status as JobStatus) : undefined;
   const shops = repo.listShops();
   const jobs = repo.listJobs(month, { shopId, status });
-  const openCount = repo.listJobs(month, { status: "open" }).length;
+  const monthJobs = repo.listJobs(month);
+  const openCount = monthJobs.filter((j) => j.status === "open").length;
+  const withApplicants = monthJobs.filter((j) => j.status === "offered" && j.interested_offers > 0).length;
   const cw = decodeSummary(sp.cw);
 
   return (
@@ -28,13 +34,15 @@ export default async function Jobs({
       </div>
 
       {sp.generated != null && <p className="notice good">{monthLabel(month)}の案件を{sp.generated}件作りました。</p>}
-      {sp.offered != null && (
+      {sp.invited != null && (
         <p className="notice good">
-          {sp.offered}件を打診しました。
-          {Number(sp.unfilled) > 0 && ` 条件に合うスタッフがいない案件が${sp.unfilled}件あります。`}
+          {sp.jobs}件の案件について、のべ{sp.invited}人に案内しました。
+          {Number(sp.nomatch) > 0 && ` 条件に合うスタッフがいない案件が${sp.nomatch}件あります（全体募集できます）。`}
           {cw && summaryText(cw)}
         </p>
       )}
+      {sp.confirmed != null && <p className="notice good">{sp.confirmed}件を確定しました。{chatworkEnabled() && "担当スタッフと、選ばれなかった希望者にチャットワークで連絡しています。"}</p>}
+      {sp.opencall != null && <p className="notice good">{sp.opencall}件を全体募集にしました。{cw && summaryText(cw)}</p>}
 
       <div className="grid">
         <form action={generateJobsAction} className="card stack">
@@ -51,14 +59,31 @@ export default async function Jobs({
           <div><button type="submit" disabled={shops.length === 0}>{monthLabel(month)}の案件を作る</button></div>
         </form>
 
-        <form action={planMonthAction} className="card stack">
-          <h2>② 割当案を作って打診する</h2>
+        <form action={inviteMonthAction} className="card stack">
+          <h2>② マッチングして案内する</h2>
           <input type="hidden" name="month" value={month} />
           <p className="small">
-            未割当の <b className="num">{openCount}</b>件について、登録された予定・エリア・時間帯に合うスタッフから、その店の経験と今月の件数で1人ずつ選んで打診します。
+            未案内の <b className="num">{openCount}</b>件について、登録された日時・エリアに合うスタッフ全員に、マイページとチャットワークで案内します。
           </p>
-          <p className="small muted">スタッフが「参加」を押すと確定します。辞退された案件は未割当に戻るので、案件ごとに別の人へ打診してください。</p>
-          <div><button type="submit" disabled={openCount === 0}>割当案を作って打診</button></div>
+          <div><button type="submit" disabled={openCount === 0}>マッチングして案内</button></div>
+        </form>
+
+        <form action={confirmMonthAction} className="card stack">
+          <h2>③ 希望者から担当を確定する</h2>
+          <input type="hidden" name="month" value={month} />
+          <p className="small">
+            希望者がいる <b className="num">{withApplicants}</b>件を、その店の経験と今月の件数で最適な人に確定します。1件ずつ選ぶときは案件の詳細から確定してください。
+          </p>
+          <div><button type="submit" disabled={withApplicants === 0}>最適な人でまとめて確定</button></div>
+        </form>
+
+        <form action={openCallMonthAction} className="card stack">
+          <h2>④ 適任がいない案件を全体募集</h2>
+          <input type="hidden" name="month" value={month} />
+          <p className="small">
+            案内できるスタッフがいなかった未案内の <b className="num">{openCount}</b>件を、全スタッフに告知して希望を募ります。希望が来たら③で確定します。
+          </p>
+          <div><button type="submit" className="secondary" disabled={openCount === 0}>全体募集にする</button></div>
         </form>
 
         <form action={addJobAction} className="card stack">
@@ -100,7 +125,11 @@ export default async function Jobs({
                   <td className="nowrap">{dateLabel(j.date)}</td>
                   <td>{j.shop_name}<span className="small muted">（{j.area}）</span></td>
                   <td className="num">{minutesToLabel(j.start_time)}</td>
-                  <td><JobPill status={j.status} />{j.pending_offers > 0 && <span className="small muted"> {j.pending_offers}人に打診中</span>}</td>
+                  <td>
+                    <JobPill status={j.status} />
+                    {j.open_call === 1 && <span className="pill offered">全体募集</span>}
+                    {j.status === "offered" && <span className="small muted"> 希望{j.interested_offers}人／回答待ち{j.pending_offers}人</span>}
+                  </td>
                   <td>{j.staff_name ?? <span className="muted">—</span>}</td>
                   <td><Link href={`/admin/jobs/${j.id}`}>詳細</Link></td>
                 </tr>

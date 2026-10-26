@@ -26,12 +26,12 @@ export default async function StaffAvailability({
   return (
     <main className="page narrow">
       <div className="head">
-        <h1>入れる日の登録</h1>
-        <Link href={`/s/${token}`}>依頼一覧へ</Link>
+        <h1>稼働できる日時の登録</h1>
+        <Link href={`/s/${token}`}>マイページへ</Link>
       </div>
       <MonthNav month={month} base={`/s/${token}/availability`} />
-      {sp.saved && <p className="notice good">{monthLabel(month)}の予定を保存しました。本部が案件を割り振ったら、依頼一覧に届きます。</p>}
-      <p className="small muted">毎月20日ごろに翌月の割り振りを行います。それまでに翌月の予定を登録してください。</p>
+      {sp.saved && <p className="notice good">{monthLabel(month)}の予定を保存しました。合う案件があると、マイページとチャットワークに案内が届きます。</p>}
+      <p className="small muted">毎月20日ごろに翌月分の案内を送ります。それまでに翌月の稼働できる日時を登録してください。</p>
       <AvailabilityForm
         key={month}
         month={month}

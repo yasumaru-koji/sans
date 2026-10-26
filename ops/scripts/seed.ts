@@ -48,6 +48,7 @@ for (const p of people) {
     timeTo: p.to,
     maxJobs: 16,
     note: "",
+    dayTimes: {},
     dates: daysOfMonth(month).filter((d) => p.days.includes(weekdayOf(d))),
   });
 }

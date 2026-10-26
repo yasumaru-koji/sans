@@ -123,3 +123,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 14px; }
 
 .offer { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 16px; display: grid; gap: 10px; }
 .offer .when { font-size: 18px; font-weight: 700; }
+
+/* グリッドの子が中身（表やカレンダー）に押されて画面幅を超えないようにする */
+.card > *, form.stack > *, .page > * { min-width: 0; }
+details { min-width: 0; }

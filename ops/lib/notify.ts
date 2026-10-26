@@ -22,7 +22,7 @@ export function staffPageUrl(base: string, staff: repo.Staff): string {
 export function inviteMessage(base: string, staff: repo.Staff): string {
   return [
     `${staff.name}さん`,
-    "締め作業スタッフ用のページです。毎月の入れる日の登録と、案件への参加・辞退の回答はここからお願いします。",
+    "締め作業スタッフのマイページです。毎月の稼働できる日時の登録と、案件への稼働希望はここからお願いします。",
     staffPageUrl(base, staff),
   ].join("\n");
 }
@@ -32,13 +32,13 @@ export function offersMessage(base: string, staff: repo.Staff, offers: repo.Staf
     (o) => `・${dateLabel(o.date)} ${minutesToLabel(o.start_time)}〜 ${o.area} ${yen(o.pay + o.bonus)}`,
   );
   return [
-    `[info][title]${staff.name}さん 締め作業のご依頼（回答待ち${offers.length}件）[/title]${lines.join("\n")}[/info]`,
-    "参加できるかどうか、下のページから回答をお願いします。",
+    `[info][title]${staff.name}さん 締め作業のご案内（${offers.length}件）[/title]${lines.join("\n")}[/info]`,
+    "稼働を希望する案件は、マイページで「希望する」を押してください。希望者の中から本部が担当を決めてご連絡します。",
     staffPageUrl(base, staff),
   ].join("\n");
 }
 
-/** 指定したスタッフに、いま回答待ちの依頼をまとめて送る */
+/** 指定したスタッフに、まだ回答していない案内をまとめて送る */
 export async function notifyPendingOffers(base: string, staffIds: number[]): Promise<NotifySummary> {
   const results: SendResult[] = [];
   for (const id of new Set(staffIds)) {
@@ -51,7 +51,7 @@ export async function notifyPendingOffers(base: string, staffIds: number[]): Pro
   return summarize(results);
 }
 
-/** 参加で確定したことを本人に送る（住所と鍵の情報つき） */
+/** 担当に決まったことを本人に送る（住所と鍵の情報つき） */
 export async function notifyCommitted(base: string, staff: repo.Staff, jobIds: number[]): Promise<void> {
   const jobs = jobIds.map((id) => repo.getJob(id)).filter((j): j is repo.Job => !!j);
   if (jobs.length === 0) return;
@@ -60,14 +60,50 @@ export async function notifyCommitted(base: string, staff: repo.Staff, jobIds: n
   );
   await sendChatwork(
     staff.chatwork_room_id,
-    [`[info][title]確定しました（${jobs.length}件）[/title]${lines.join("\n")}[/info]`, `詳細：${staffPageUrl(base, staff)}`].join("\n"),
+    [`[info][title]担当が決まりました（${jobs.length}件）[/title]${lines.join("\n")}[/info]`, `詳細：${staffPageUrl(base, staff)}`].join("\n"),
   );
+}
+
+/** 希望を出したが別の人で確定した案件を知らせる */
+export async function notifyNotChosen(base: string, items: { jobId: number; staffId: number }[]): Promise<void> {
+  const byStaff = new Map<number, number[]>();
+  for (const i of items) byStaff.set(i.staffId, [...(byStaff.get(i.staffId) ?? []), i.jobId]);
+  for (const [staffId, jobIds] of byStaff) {
+    const staff = repo.getStaff(staffId);
+    if (!staff) continue;
+    const lines = jobIds
+      .map((id) => repo.getJob(id))
+      .filter((j): j is repo.Job => !!j)
+      .map((j) => `・${dateLabel(j.date)} ${minutesToLabel(j.start_time)}〜 ${j.area}`);
+    await sendChatwork(
+      staff.chatwork_room_id,
+      [`ご希望いただいた次の案件は、今回は別のスタッフで決まりました。またのご希望をお待ちしています。`, ...lines, staffPageUrl(base, staff)].join("\n"),
+    );
+  }
+}
+
+/** 全体募集を告知する。全員参加のルームがあればそこへ、なければ稼働中の全員に個別に送る */
+export async function notifyOpenCall(base: string, jobIds: number[]): Promise<NotifySummary> {
+  const jobs = jobIds.map((id) => repo.getJob(id)).filter((j): j is repo.Job => !!j);
+  if (jobs.length === 0) return summarize([]);
+  const lines = jobs.map((j) => `・${dateLabel(j.date)} ${minutesToLabel(j.start_time)}〜 ${j.area} 報酬${yen(j.pay + j.bonus)}`);
+  const head = [
+    `[info][title]【全体募集】締め作業のスタッフを募集しています（${jobs.length}件）[/title]${lines.join("\n")}[/info]`,
+    "稼働できる方は、マイページの「全体募集」から「希望する」を押してください。",
+  ].join("\n");
+  const room = process.env.CHATWORK_ALL_STAFF_ROOM_ID;
+  if (room) return summarize([await sendChatwork(room, head)]);
+  const results: SendResult[] = [];
+  for (const s of repo.listStaff().filter((x) => x.status === "active")) {
+    results.push(await sendChatwork(s.chatwork_room_id, `${head}\n${staffPageUrl(base, s)}`));
+  }
+  return summarize(results);
 }
 
 /** 画面に出す送信結果の一文 */
 export function summaryText(s: NotifySummary): string {
   if (s.noToken) return "チャットワーク連携が未設定のため、通知は送っていません。";
-  const parts = [`チャットワークで${s.sent}人に通知しました。`];
+  const parts = [`チャットワークで${s.sent}件送りました。`];
   if (s.noRoom) parts.push(`ルームID未登録の${s.noRoom}人には送れていません。`);
   if (s.failed) parts.push(`${s.failed}人は送信に失敗しました（ルームIDと、本部アカウントがそのチャットに入っているかを確認してください）。`);
   return parts.join("");

@@ -92,6 +92,17 @@ function migrate(d: DatabaseSync) {
   if (!cols.includes("chatwork_room_id")) {
     d.exec(`ALTER TABLE staff ADD COLUMN chatwork_room_id TEXT NOT NULL DEFAULT ''`);
   }
+  const has = (table: string, col: string) =>
+    (d.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).some((c) => c.name === col);
+  // 日ごとの時間帯（NULLなら月の時間帯）
+  if (!has("availability_dates", "time_from")) {
+    d.exec(`ALTER TABLE availability_dates ADD COLUMN time_from INTEGER`);
+    d.exec(`ALTER TABLE availability_dates ADD COLUMN time_to INTEGER`);
+  }
+  // 全スタッフへの再募集
+  if (!has("jobs", "open_call")) {
+    d.exec(`ALTER TABLE jobs ADD COLUMN open_call INTEGER NOT NULL DEFAULT 0`);
+  }
 }
 
 declare global {

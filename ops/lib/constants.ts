@@ -24,8 +24,8 @@ export const KEY_METHODS = {
 export type KeyMethod = keyof typeof KEY_METHODS;
 
 export const JOB_STATUS = {
-  open: "未割当",
-  offered: "打診中",
+  open: "未案内",
+  offered: "募集中",
   committed: "確定",
   completed: "完了",
   cancelled: "中止",
@@ -34,8 +34,9 @@ export type JobStatus = keyof typeof JOB_STATUS;
 
 export const OFFER_STATUS = {
   pending: "回答待ち",
-  accepted: "参加",
-  declined: "辞退",
+  interested: "希望",
+  accepted: "確定",
+  declined: "見送り",
   closed: "締切",
   withdrawn: "取り下げ",
 } as const;
