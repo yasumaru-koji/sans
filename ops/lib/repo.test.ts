@@ -20,6 +20,7 @@ import {
   pendingOffersForStaff,
   respondOffer,
   saveAvailability,
+  staffMonthMarks,
   startOpenCall,
 } from "./repo";
 
@@ -126,6 +127,14 @@ describe("案内から確定まで", () => {
     createOffers(job.id, [b]);
     respondOffer(b, pendingOffersForStaff(b).find((o) => o.id === job.id)!.offer_id, true);
     expect(confirmJob(job.id, b).result).toBe("clash");
+  });
+
+  it("シフト表用に、入れる日と決定待ちの希望を返す", () => {
+    const { available, interested } = staffMonthMarks(month);
+    expect([...available.get(a)!].sort()).toEqual(["2026-11-02", "2026-11-05"]);
+    expect(available.has(c)).toBe(false);
+    // 鈴木はサロンBの11/2に希望を出したまま（同じ夜に確定済みのため確定できなかった）
+    expect(interested.get(b)?.get("2026-11-02")).toBe(1);
   });
 
   it("完了した案件だけ報酬に集計する", () => {

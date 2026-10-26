@@ -279,6 +279,31 @@ export function listJobs(month: string, filter: { shopId?: number; status?: JobS
   return all(`${JOB_SELECT} WHERE ${where.join(" AND ")} ORDER BY j.date, j.start_time, sh.name`, ...params);
 }
 
+/** シフト表（スタッフ別）用：その月に入れると登録した日と、希望を出している日 */
+export function staffMonthMarks(month: string): {
+  available: Map<number, Set<string>>;
+  interested: Map<number, Map<string, number>>;
+} {
+  const available = new Map<number, Set<string>>();
+  for (const r of all<{ staff_id: number; date: string }>(
+    `SELECT staff_id, date FROM availability_dates WHERE date LIKE ?`,
+    `${month}-%`,
+  )) {
+    if (!available.has(r.staff_id)) available.set(r.staff_id, new Set());
+    available.get(r.staff_id)!.add(r.date);
+  }
+  const interested = new Map<number, Map<string, number>>();
+  for (const r of all<{ staff_id: number; date: string; n: number }>(
+    `SELECT o.staff_id, j.date, COUNT(*) AS n FROM offers o JOIN jobs j ON j.id = o.job_id
+     WHERE o.status = 'interested' AND j.date LIKE ? GROUP BY o.staff_id, j.date`,
+    `${month}-%`,
+  )) {
+    if (!interested.has(r.staff_id)) interested.set(r.staff_id, new Map());
+    interested.get(r.staff_id)!.set(r.date, r.n);
+  }
+  return { available, interested };
+}
+
 export function getJob(id: number): Job | undefined {
   return get(`${JOB_SELECT} WHERE j.id = ?`, id);
 }

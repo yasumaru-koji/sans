@@ -34,7 +34,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       <section className="card">
         <div className="head">
           <h2>直近7日で決まっていない案件</h2>
-          <Link href={`/admin/jobs?month=${today.slice(0, 7)}&status=open`}>案件一覧へ</Link>
+          <Link href={`/admin/jobs?month=${today.slice(0, 7)}&view=list&status=open`}>案件一覧へ</Link>
         </div>
         {unfilled.length === 0 ? (
           <p className="muted">直近7日の案件はすべて確定しています。</p>

@@ -43,7 +43,7 @@ export default async function JobDetail({
     <main className="page">
       <div className="head">
         <h1>{dateLabel(job.date)} {job.shop_name}</h1>
-        <Link href={`/admin/jobs?month=${month}`}>案件一覧へ</Link>
+        <Link href={`/admin/jobs?month=${month}`}>シフト管理へ</Link>
       </div>
       {sp.offered != null && <p className="notice good">{sp.offered}人に案内しました。{cw && summaryText(cw)}</p>}
       {sp.opencall != null && <p className="notice good">全体募集にしました。{cw && summaryText(cw)}</p>}
