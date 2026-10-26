@@ -5,7 +5,14 @@ import { requireAdmin, signOut } from "@/lib/auth";
 import { normalizeRoomId, sendChatwork } from "@/lib/chatwork";
 import { KEY_METHODS, STAFF_STATUS, type KeyMethod, type StaffStatus } from "@/lib/constants";
 import { int, ints, parseAvailability, str } from "@/lib/form";
-import { encodeSummary, inviteMessage, notifyPendingOffers } from "@/lib/notify";
+import {
+  encodeSummary,
+  inviteMessage,
+  notifyCommitted,
+  notifyNotChosen,
+  notifyOpenCall,
+  notifyPendingOffers,
+} from "@/lib/notify";
 import * as repo from "@/lib/repo";
 import { isMonth } from "@/lib/time";
 import { baseUrl } from "@/lib/url";
@@ -102,13 +109,44 @@ export async function generateJobsAction(fd: FormData) {
   redirect(`/admin/jobs?month=${month}&generated=${n}`);
 }
 
-export async function planMonthAction(fd: FormData) {
-  await requireAdmin();
+function monthOf(fd: FormData): string {
   const month = str(fd, "month");
   if (!isMonth(month)) throw new Error("月の指定が正しくありません");
-  const r = repo.planAndOfferMonth(month);
+  return month;
+}
+
+/** マッチング：未案内の案件を、条件に合うスタッフ全員に案内する */
+export async function inviteMonthAction(fd: FormData) {
+  await requireAdmin();
+  const month = monthOf(fd);
+  const r = repo.inviteMonth(month);
   const cw = await notifyPendingOffers(await baseUrl(), r.staffIds);
-  redirect(`/admin/jobs?month=${month}&offered=${r.offered}&unfilled=${r.unfilled}&cw=${encodeSummary(cw)}`);
+  redirect(`/admin/jobs?month=${month}&invited=${r.invites}&jobs=${r.jobs}&nomatch=${r.noMatch}&cw=${encodeSummary(cw)}`);
+}
+
+/** 希望者のいる案件を、最適な人でまとめて確定する */
+export async function confirmMonthAction(fd: FormData) {
+  await requireAdmin();
+  const month = monthOf(fd);
+  const r = repo.confirmMonth(month);
+  const base = await baseUrl();
+  const byStaff = new Map<number, number[]>();
+  for (const c of r.confirmed) byStaff.set(c.staffId, [...(byStaff.get(c.staffId) ?? []), c.jobId]);
+  for (const [staffId, jobIds] of byStaff) {
+    const staff = repo.getStaff(staffId);
+    if (staff) await notifyCommitted(base, staff, jobIds);
+  }
+  await notifyNotChosen(base, r.notChosen);
+  redirect(`/admin/jobs?month=${month}&confirmed=${r.confirmed.length}`);
+}
+
+/** まだ誰にも案内できていない案件を、まとめて全スタッフに再募集する */
+export async function openCallMonthAction(fd: FormData) {
+  await requireAdmin();
+  const month = monthOf(fd);
+  const ids = repo.listJobs(month, { status: "open" }).map((j) => j.id).filter((id) => repo.startOpenCall(id));
+  const cw = await notifyOpenCall(await baseUrl(), ids);
+  redirect(`/admin/jobs?month=${month}&opencall=${ids.length}&cw=${encodeSummary(cw)}`);
 }
 
 export async function addJobAction(fd: FormData) {
@@ -123,6 +161,25 @@ export async function offerAction(jobId: number, fd: FormData) {
   const ids = repo.createOffers(jobId, ints(fd, "staff_id"));
   const cw = await notifyPendingOffers(await baseUrl(), ids);
   redirect(`/admin/jobs/${jobId}?offered=${ids.length}&cw=${encodeSummary(cw)}`);
+}
+
+export async function confirmAction(jobId: number, staffId: number) {
+  await requireAdmin();
+  const r = repo.confirmJob(jobId, staffId);
+  if (r.result === "committed") {
+    const base = await baseUrl();
+    const staff = repo.getStaff(staffId);
+    if (staff) await notifyCommitted(base, staff, [jobId]);
+    await notifyNotChosen(base, r.notChosen.map((id) => ({ jobId, staffId: id })));
+  }
+  redirect(`/admin/jobs/${jobId}?confirm=${r.result}`);
+}
+
+export async function openCallAction(jobId: number) {
+  await requireAdmin();
+  const ok = repo.startOpenCall(jobId);
+  const cw = ok ? await notifyOpenCall(await baseUrl(), [jobId]) : null;
+  redirect(`/admin/jobs/${jobId}?opencall=1${cw ? `&cw=${encodeSummary(cw)}` : ""}`);
 }
 
 export async function withdrawOfferAction(jobId: number, offerId: number) {

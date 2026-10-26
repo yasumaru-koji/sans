@@ -36,6 +36,18 @@ export function parseAvailability(fd: FormData) {
   } catch {
     dates = [];
   }
+  const dayTimes: Record<string, { from: number; to: number }> = {};
+  try {
+    const parsed = JSON.parse(str(fd, "day_times") || "{}");
+    for (const [d, t] of Object.entries(parsed ?? {})) {
+      const { from, to } = (t ?? {}) as { from?: unknown; to?: unknown };
+      if (Number.isInteger(from) && Number.isInteger(to) && (to as number) > (from as number)) {
+        dayTimes[d] = { from: from as number, to: to as number };
+      }
+    }
+  } catch {
+    // 不正な値は無視して月の時間帯を使う
+  }
   const timeFrom = int(fd, "time_from", 20 * 60);
   const timeTo = int(fd, "time_to", 24 * 60);
   if (timeTo <= timeFrom) throw new Error("終了時刻は開始時刻より後にしてください");
@@ -48,5 +60,6 @@ export function parseAvailability(fd: FormData) {
     maxJobs: optInt(fd, "max_jobs"),
     note: str(fd, "note"),
     dates,
+    dayTimes,
   };
 }

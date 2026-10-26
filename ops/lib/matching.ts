@@ -13,6 +13,8 @@ export type MatchJob = {
 
 export type Slot = { jobId: number; date: string; start: number; end: number };
 
+export type TimeWindow = { from: number; to: number };
+
 export type MatchStaff = {
   id: number;
   name: string;
@@ -20,21 +22,20 @@ export type MatchStaff = {
   /** その月の稼働登録。未登録なら null */
   availability: {
     areas: string[];
-    timeFrom: number;
-    timeTo: number;
     maxJobs: number | null;
-    dates: Set<string>;
+    /** 入れる日と、その日に入れる時間帯 */
+    dates: Map<string, TimeWindow>;
   } | null;
-  /** 確定済み・完了・回答待ちの案件（同じ夜の重複チェック用） */
+  /** 確定済み・完了の案件（同じ夜の重複チェック用） */
   slots: Slot[];
-  /** その月の確定＋回答待ちの件数 */
+  /** その月の確定件数 */
   monthCount: number;
   /** 店舗IDごとの過去の担当回数 */
   experience: Map<number, number>;
-  /** この案件をすでに辞退した案件ID */
+  /** 見送った案件ID */
   declinedJobIds: Set<number>;
-  /** この案件に回答待ちの打診がある案件ID */
-  pendingJobIds: Set<number>;
+  /** すでに案内した（回答待ち・希望あり）案件ID */
+  invitedJobIds: Set<number>;
 };
 
 export type Candidate = {
@@ -48,35 +49,45 @@ export type Candidate = {
   score: number;
 };
 
+/**
+ * invite：案内を送る相手を選ぶ。登録した日・エリア・時間帯に合う人だけ。
+ * confirm：希望を出した人から確定する人を選ぶ。本人が希望しているので登録内容は問わず、
+ *          同じ夜の重複と月の上限だけを見る。
+ */
+export type MatchMode = "invite" | "confirm";
+
 function overlaps(a: { start: number; end: number }, b: { start: number; end: number }) {
   return a.start < b.end + TRAVEL_BUFFER_MIN && b.start < a.end + TRAVEL_BUFFER_MIN;
 }
 
-export function evaluate(job: MatchJob, s: MatchStaff): Candidate {
+export function evaluate(job: MatchJob, s: MatchStaff, mode: MatchMode = "invite"): Candidate {
   const blockers: string[] = [];
   const notes: string[] = [];
   const end = job.start + job.workMinutes;
   const av = s.availability;
 
   if (!s.active) blockers.push("稼働中ではない");
-  if (!av) {
-    blockers.push("この月の稼働予定が未登録");
-  } else {
-    if (!av.dates.has(job.date)) blockers.push("この日は稼働不可");
-    if (!av.areas.includes(job.area)) blockers.push(`${job.area}は対応エリア外`);
-    if (job.start < av.timeFrom || end > av.timeTo) {
-      blockers.push(`時間帯外（登録 ${minutesToLabel(av.timeFrom)}〜${minutesToLabel(av.timeTo)}）`);
+  if (mode === "invite") {
+    if (!av) {
+      blockers.push("この月の稼働予定が未登録");
+    } else {
+      const win = av.dates.get(job.date);
+      if (!win) blockers.push("この日は稼働不可");
+      if (!av.areas.includes(job.area)) blockers.push(`${job.area}は対応エリア外`);
+      if (win && (job.start < win.from || end > win.to)) {
+        blockers.push(`時間帯外（登録 ${minutesToLabel(win.from)}〜${minutesToLabel(win.to)}）`);
+      }
     }
-    if (av.maxJobs != null && s.monthCount >= av.maxJobs) {
-      blockers.push(`今月の上限 ${av.maxJobs}件に到達`);
-    }
+    if (s.declinedJobIds.has(job.id)) blockers.push("この案件は見送り済み");
+    if (s.invitedJobIds.has(job.id)) blockers.push("案内済み");
   }
-  if (s.declinedJobIds.has(job.id)) blockers.push("この案件は辞退済み");
-  if (s.pendingJobIds.has(job.id)) blockers.push("この案件に回答待ち");
+  if (av?.maxJobs != null && s.monthCount >= av.maxJobs) {
+    blockers.push(`今月の上限 ${av.maxJobs}件に到達`);
+  }
   const clash = s.slots.find(
     (o) => o.jobId !== job.id && o.date === job.date && overlaps(o, { start: job.start, end }),
   );
-  if (clash) blockers.push("同じ夜の別案件と時間が重なる");
+  if (clash) blockers.push("同じ夜の確定案件と時間が重なる");
 
   // スコア：その店の経験（最大50点）＋稼働の平準化（最大30点）
   const exp = s.experience.get(job.shopId) ?? 0;
@@ -101,27 +112,33 @@ export function evaluate(job: MatchJob, s: MatchStaff): Candidate {
   };
 }
 
-export function rankCandidates(job: MatchJob, staff: MatchStaff[]): Candidate[] {
+export function rankCandidates(job: MatchJob, staff: MatchStaff[], mode: MatchMode = "invite"): Candidate[] {
   return staff
-    .map((s) => evaluate(job, s))
+    .map((s) => evaluate(job, s, mode))
     .sort((a, b) => Number(b.eligible) - Number(a.eligible) || b.score - a.score || a.staffId - b.staffId);
 }
 
 /**
- * 月次の割当案。日付・時刻の早い案件から順に最上位の候補を1人ずつ選び、
+ * 希望者からの一括確定案。日付・時刻の早い案件から順に、希望者のうち最上位の人を選び、
  * 選んだ分を次の案件の判定に反映する（同じ夜の重複と月の上限を守る）。
  */
-export function planAssignments(jobs: MatchJob[], staff: MatchStaff[]): { jobId: number; staffId: number }[] {
+export function planConfirmations(
+  jobs: MatchJob[],
+  staff: MatchStaff[],
+  interested: Map<number, Set<number>>,
+): { jobId: number; staffId: number }[] {
   const ordered = [...jobs].sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start);
   const plan: { jobId: number; staffId: number }[] = [];
   for (const job of ordered) {
-    const top = rankCandidates(job, staff).find((c) => c.eligible);
+    const wants = interested.get(job.id);
+    if (!wants?.size) continue;
+    const pool = staff.filter((s) => wants.has(s.id));
+    const top = rankCandidates(job, pool, "confirm").find((c) => c.eligible);
     if (!top) continue;
     plan.push({ jobId: job.id, staffId: top.staffId });
-    const s = staff.find((x) => x.id === top.staffId)!;
+    const s = pool.find((x) => x.id === top.staffId)!;
     s.slots.push({ jobId: job.id, date: job.date, start: job.start, end: job.start + job.workMinutes });
     s.monthCount += 1;
-    s.pendingJobIds.add(job.id);
   }
   return plan;
 }

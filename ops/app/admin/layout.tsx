@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin" className="brand">締め作業 案件管理</Link>
           <nav className="nav">
             <Link href="/admin">ダッシュボード</Link>
-            <Link href="/admin/jobs">案件</Link>
+            <Link href="/admin/jobs">シフト管理</Link>
             <Link href="/admin/staff">スタッフ</Link>
             <Link href="/admin/shops">店舗</Link>
             <Link href="/admin/payouts">報酬</Link>

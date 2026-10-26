@@ -1,27 +1,37 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import {
+  applicantsForJob,
+  applyOpenCall,
   candidatesForJob,
+  completeJob,
+  confirmJob,
+  confirmMonth,
   createOffers,
   createShop,
   createStaff,
   generateMonthJobs,
+  getAvailability,
   getJob,
+  interestedOffersForStaff,
+  inviteMonth,
   listJobs,
+  openCallJobsForStaff,
   payoutSummary,
-  planAndOfferMonth,
-  completeJob,
+  pendingOffersForStaff,
   respondOffer,
   saveAvailability,
-  pendingOffersForStaff,
+  staffMonthMarks,
+  startOpenCall,
 } from "./repo";
 
 const month = "2026-11";
-let shopId: number;
 let a: number;
 let b: number;
+let c: number;
+const jobOn = (date: string) => listJobs(month).find((j) => j.date === date)!;
 
 beforeAll(() => {
-  shopId = createShop({
+  createShop({
     name: "サロンA 渋谷店",
     area: "渋谷区",
     address: "渋谷区神南1-1-1",
@@ -34,51 +44,102 @@ beforeAll(() => {
     note: "",
     active: 1,
   });
-  const base = { kana: "", phone: "", email: "", chatwork_room_id: "", status: "active" as const, contract_date: null, invoice_no: "", bank_info: "", note: "" };
+  const base = {
+    kana: "", phone: "", email: "", chatwork_room_id: "", status: "active" as const,
+    contract_date: null, invoice_no: "", bank_info: "", note: "",
+  };
   a = createStaff({ ...base, name: "佐藤" });
   b = createStaff({ ...base, name: "鈴木" });
-  const av = { month, areas: ["渋谷区"], weekdays: [], timeFrom: 20 * 60, timeTo: 25 * 60, maxJobs: null, note: "" };
+  c = createStaff({ ...base, name: "高橋" }); // 予定未登録
+  const av = { month, areas: ["渋谷区"], weekdays: [], timeFrom: 20 * 60, timeTo: 25 * 60, maxJobs: null, note: "", dayTimes: {} };
   saveAvailability(a, { ...av, dates: ["2026-11-02", "2026-11-05"] });
-  saveAvailability(b, { ...av, dates: ["2026-11-02", "2026-11-06"] });
+  // 鈴木は11/6だけ22時以降
+  saveAvailability(b, { ...av, dates: ["2026-11-02", "2026-11-06"], dayTimes: { "2026-11-06": { from: 22 * 60, to: 25 * 60 } } });
 });
 
-describe("案件の作成とマッチング", () => {
+describe("稼働登録", () => {
+  it("日ごとの時間帯を保存する（月の時間帯と同じなら保存しない）", () => {
+    expect(getAvailability(b, month)!.dayTimes).toEqual({ "2026-11-06": { from: 22 * 60, to: 25 * 60 } });
+    expect(getAvailability(a, month)!.dayTimes).toEqual({});
+  });
+});
+
+describe("案内から確定まで", () => {
   it("定休日を除いて月の案件を作る", () => {
     expect(generateMonthJobs(month)).toBe(30 - 4); // 2026年11月の火曜は4回
     expect(generateMonthJobs(month)).toBe(0);
   });
 
-  it("最初に参加した人で確定し、他の打診は締め切る", () => {
-    const job = listJobs(month).find((j) => j.date === "2026-11-02")!;
-    expect(candidatesForJob(job.id).filter((c) => c.eligible).map((c) => c.name).sort()).toEqual(["佐藤", "鈴木"]);
-    expect(createOffers(job.id, [a, b])).toEqual([a, b]);
-    expect(getJob(job.id)!.status).toBe("offered");
-
-    const offerB = pendingOffersForStaff(b)[0];
-    const offerA = pendingOffersForStaff(a)[0];
-    expect(respondOffer(b, offerB.offer_id, true)).toBe("committed");
-    expect(respondOffer(a, offerA.offer_id, true)).toBe("invalid");
-    expect(getJob(job.id)).toMatchObject({ status: "committed", staff_id: b });
+  it("マッチングで条件に合う全員に案内する", () => {
+    const r = inviteMonth(month);
+    // 11/2 は佐藤・鈴木、11/5 は佐藤。11/6 は開始21時で鈴木の時間外なので案内なし
+    expect(r).toMatchObject({ invites: 3, jobs: 2 });
+    expect(r.staffIds.sort()).toEqual([a, b].sort());
+    expect(getJob(jobOn("2026-11-02").id)!.status).toBe("offered");
+    expect(getJob(jobOn("2026-11-06").id)!.status).toBe("open");
+    expect(inviteMonth(month).invites).toBe(0); // 2回目は誰にも送らない
   });
 
-  it("辞退で回答待ちがなくなれば未割当に戻る", () => {
-    const job = listJobs(month).find((j) => j.date === "2026-11-05")!;
-    createOffers(job.id, [a]);
+  it("スタッフの希望だけでは確定せず、本部が選んで確定する", () => {
+    const job = jobOn("2026-11-02");
+    const offerA = pendingOffersForStaff(a).find((o) => o.id === job.id)!;
+    const offerB = pendingOffersForStaff(b).find((o) => o.id === job.id)!;
+    expect(respondOffer(a, offerA.offer_id, true)).toBe("interested");
+    expect(respondOffer(b, offerB.offer_id, true)).toBe("interested");
+    expect(getJob(job.id)!.status).toBe("offered");
+    expect(applicantsForJob(job.id).map((x) => x.name).sort()).toEqual(["佐藤", "鈴木"]);
+
+    const r = confirmJob(job.id, b);
+    expect(r).toEqual({ result: "committed", notChosen: [a] });
+    expect(getJob(job.id)).toMatchObject({ status: "committed", staff_id: b });
+    expect(interestedOffersForStaff(a)).toEqual([]);
+  });
+
+  it("見送りで案内中の人がいなくなれば未案内に戻る", () => {
+    const job = jobOn("2026-11-05");
     expect(respondOffer(a, pendingOffersForStaff(a)[0].offer_id, false)).toBe("declined");
     expect(getJob(job.id)!.status).toBe("open");
-    expect(candidatesForJob(job.id).find((c) => c.staffId === a)!.blockers).toContain("この案件は辞退済み");
+    expect(candidatesForJob(job.id).find((x) => x.staffId === a)!.blockers).toContain("この案件は見送り済み");
   });
 
-  it("月次の割当案で登録済みの日だけ打診する", () => {
-    const r = planAndOfferMonth(month);
-    expect(r).toMatchObject({ offered: 1, staffIds: [b] }); // 11/6 の鈴木だけ
-    expect(pendingOffersForStaff(b).map((o) => o.date)).toEqual(["2026-11-06"]);
+  it("適任がいない案件を全体募集にすると、予定未登録の人も希望できる", () => {
+    const job = jobOn("2026-11-06");
+    expect(startOpenCall(job.id)).toBe(true);
+    expect(openCallJobsForStaff(c, "2026-11-01").map((j) => j.id)).toContain(job.id);
+    expect(applyOpenCall(c, job.id)).toBe("interested");
+    expect(openCallJobsForStaff(c, "2026-11-01").map((j) => j.id)).not.toContain(job.id);
+    expect(applicantsForJob(job.id)).toMatchObject([{ name: "高橋", eligible: true }]);
+  });
+
+  it("一括確定で希望者のいる案件を確定する", () => {
+    const r = confirmMonth(month);
+    expect(r.confirmed).toEqual([{ jobId: jobOn("2026-11-06").id, staffId: c }]);
+    expect(getJob(jobOn("2026-11-06").id)).toMatchObject({ status: "committed", open_call: 0 });
+  });
+
+  it("同じ夜に確定済みの人は確定できない", () => {
+    const other = createShop({
+      name: "サロンB", area: "渋谷区", address: "", start_time: 21 * 60 + 30, work_minutes: 60,
+      closed_weekdays: [], key_method: "keybox", fee_per_job: 6000, pay_per_job: 3000, note: "", active: 1,
+    });
+    generateMonthJobs(month, other);
+    const job = listJobs(month, { shopId: other }).find((j) => j.date === "2026-11-02")!;
+    createOffers(job.id, [b]);
+    respondOffer(b, pendingOffersForStaff(b).find((o) => o.id === job.id)!.offer_id, true);
+    expect(confirmJob(job.id, b).result).toBe("clash");
+  });
+
+  it("シフト表用に、入れる日と決定待ちの希望を返す", () => {
+    const { available, interested } = staffMonthMarks(month);
+    expect([...available.get(a)!].sort()).toEqual(["2026-11-02", "2026-11-05"]);
+    expect(available.has(c)).toBe(false);
+    // 鈴木はサロンBの11/2に希望を出したまま（同じ夜に確定済みのため確定できなかった）
+    expect(interested.get(b)?.get("2026-11-02")).toBe(1);
   });
 
   it("完了した案件だけ報酬に集計する", () => {
-    const job = listJobs(month).find((j) => j.date === "2026-11-02")!;
     expect(payoutSummary(month)).toEqual([]);
-    completeJob(job.id);
+    completeJob(jobOn("2026-11-02").id);
     expect(payoutSummary(month)).toMatchObject([{ name: "鈴木", jobs: 1, amount: 3000 }]);
   });
 });

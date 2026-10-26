@@ -59,7 +59,7 @@ export default async function StaffDetail({
             <button type="submit" className="danger">URLを作り直す（紛失・退職時）</button>
           </form>
         </div>
-        {!staff.chatwork_room_id && <p className="small muted">チャットワークのルームIDを登録すると、案件の打診がチャットワークに自動で届きます。</p>}
+        {!staff.chatwork_room_id && <p className="small muted">チャットワークのルームIDを登録すると、案件の案内と担当決定の連絡がチャットワークに自動で届きます。</p>}
         <details>
           <summary>手動で送る文面</summary>
           <div style={{ marginTop: 8 }}><CopyText text={invite} label="文面をコピー" /></div>
