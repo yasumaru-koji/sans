@@ -57,7 +57,7 @@ export default async function Home() {
                     {j.staff_name ?? <span className="muted">担当未定</span>}
                     {unfilled && j.interested_offers > 0 && <span className="small warn-text">希望{j.interested_offers}人</span>}
                   </span>
-                  <JobPill status={j.status} />
+                  {j.status === "committed" && j.checked_in_at ? <span className="pill offered">入店済</span> : <JobPill status={j.status} />}
                   <Link className={unfilled ? "btn" : "btn secondary"} href={`/admin/jobs/${j.id}`}>{unfilled ? "担当を決める" : "詳細"}</Link>
                 </li>
               );
@@ -99,7 +99,7 @@ export default async function Home() {
             <div className="todo-item">
               <div>
                 <b>完了にしていない作業 {toComplete.length}件</b>
-                <p className="muted small">完了にすると報酬に集計されます。</p>
+                <p className="muted small">スタッフが完了報告をしていない作業です。確認して完了にすると報酬に集計されます。</p>
               </div>
               <ul className="mini-list">
                 {toComplete.slice(0, 5).map((j) => (

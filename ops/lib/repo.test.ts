@@ -18,6 +18,10 @@ import {
   openCallJobsForStaff,
   payoutSummary,
   pendingOffersForStaff,
+  checkIn,
+  reportComplete,
+  reportPhotos,
+  staffPayMonths,
   respondOffer,
   saveAvailability,
   staffMonthMarks,
@@ -141,5 +145,23 @@ describe("案内から確定まで", () => {
     expect(payoutSummary(month)).toEqual([]);
     completeJob(jobOn("2026-11-02").id);
     expect(payoutSummary(month)).toMatchObject([{ name: "鈴木", jobs: 1, amount: 3000 }]);
+  });
+
+  it("担当者本人だけが入店・完了報告でき、報告すると完了になる", () => {
+    const job = listJobs(month).find((j) => j.status === "committed")!;
+    const other = [a, b, c].find((id) => id !== job.staff_id)!;
+    expect(checkIn(job.id, other)).toBe(false);
+    expect(checkIn(job.id, job.staff_id!)).toBe(true);
+    expect(getJob(job.id)!.checked_in_at).not.toBeNull();
+    expect(reportComplete(job.id, other, "", [])).toBe(false);
+    expect(reportComplete(job.id, job.staff_id!, "洗剤が残りわずか", ["abc.jpg"])).toBe(true);
+    const done = getJob(job.id)!;
+    expect(done.status).toBe("completed");
+    expect(done.report_note).toBe("洗剤が残りわずか");
+    expect(reportPhotos(done)).toEqual(["abc.jpg"]);
+    // 2回目の報告は受け付けない
+    expect(reportComplete(job.id, job.staff_id!, "", [])).toBe(false);
+    expect(staffPayMonths(job.staff_id!, [month])[0]).toMatchObject({ month, done: expect.any(Number) });
+    expect(staffPayMonths(job.staff_id!, [month])[0].doneAmount).toBeGreaterThanOrEqual(3000);
   });
 });

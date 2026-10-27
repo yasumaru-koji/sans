@@ -1,6 +1,8 @@
 "use server";
 import { redirect } from "next/navigation";
+import { CLOSING_CHECKS } from "@/lib/constants";
 import { parseAvailability } from "@/lib/form";
+import { savePhotos } from "@/lib/photos";
 import * as repo from "@/lib/repo";
 
 function staffOrThrow(token: string) {
@@ -37,4 +39,21 @@ export async function saveAvailabilityAction(token: string, fd: FormData) {
   const a = parseAvailability(fd);
   repo.saveAvailability(s.id, a);
   redirect(`/s/${token}/availability?month=${a.month}&saved=1`);
+}
+
+export async function checkInAction(token: string, jobId: number) {
+  const s = staffOrThrow(token);
+  repo.checkIn(jobId, s.id);
+  redirect(`/s/${token}/jobs/${jobId}?r=in`);
+}
+
+/** 完了報告。チェック項目がすべて付いていないと受け付けない */
+export async function reportAction(token: string, jobId: number, fd: FormData) {
+  const s = staffOrThrow(token);
+  const checked = fd.getAll("check").length;
+  if (checked < CLOSING_CHECKS.length) redirect(`/s/${token}/jobs/${jobId}?r=unchecked`);
+  const photos = await savePhotos(fd.getAll("photos").filter((f): f is File => f instanceof File));
+  const note = String(fd.get("note") ?? "").slice(0, 1000);
+  const ok = repo.reportComplete(jobId, s.id, note, photos);
+  redirect(`/s/${token}/jobs/${jobId}?r=${ok ? "done" : "invalid"}`);
 }

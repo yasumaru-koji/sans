@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyText } from "@/components/CopyText";
+import { JobReport } from "@/components/JobReport";
 import { JobPill, OfferPill } from "@/components/ui";
 import { KEY_METHODS } from "@/lib/constants";
 import { chatworkEnabled } from "@/lib/chatwork";
@@ -92,6 +93,13 @@ export default async function JobDetail({
           </form>
         )}
       </section>
+
+      {(job.checked_in_at || job.status === "completed") && (
+        <section className="card">
+          <h2>当日の報告</h2>
+          <JobReport job={job} />
+        </section>
+      )}
 
       {recruiting && (
         <section className="card">

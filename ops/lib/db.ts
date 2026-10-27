@@ -103,6 +103,12 @@ function migrate(d: DatabaseSync) {
   if (!has("jobs", "open_call")) {
     d.exec(`ALTER TABLE jobs ADD COLUMN open_call INTEGER NOT NULL DEFAULT 0`);
   }
+  // 当日の入店と完了報告（写真はファイル名のJSON配列）
+  if (!has("jobs", "checked_in_at")) {
+    d.exec(`ALTER TABLE jobs ADD COLUMN checked_in_at TEXT`);
+    d.exec(`ALTER TABLE jobs ADD COLUMN report_note TEXT NOT NULL DEFAULT ''`);
+    d.exec(`ALTER TABLE jobs ADD COLUMN report_photos TEXT NOT NULL DEFAULT '[]'`);
+  }
 }
 
 declare global {

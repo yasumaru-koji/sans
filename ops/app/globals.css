@@ -288,3 +288,13 @@ ul.offer-rows li { display: grid; grid-template-columns: minmax(0, 1fr) auto aut
 ul.offer-rows li + li { border-top: 1px solid var(--line); }
 ul.offer-rows .info { display: grid; line-height: 1.4; }
 ul.offer-rows button { padding: 10px 12px; min-width: 64px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
+.photo-input { display: grid; gap: 8px; }
+.photo-input .btn { position: relative; text-align: center; padding: 14px; }
+.thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.thumbs img, .thumbs a img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); display: block; }
+fieldset.checklist { border: 0; margin: 0; padding: 0; display: grid; gap: 4px; }
+fieldset.checklist label.inline { padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 15px; }
+fieldset.checklist input { width: 20px; height: 20px; }
+.offer.report { border: 2px solid var(--accent); }
+.report-view { display: grid; gap: 10px; }

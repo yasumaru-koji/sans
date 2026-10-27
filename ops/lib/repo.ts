@@ -68,6 +68,11 @@ export type Job = {
   bonus: number;
   note: string;
   open_call: number;
+  checked_in_at: string | null;
+  completed_at: string | null;
+  report_note: string;
+  /** 完了報告の写真のファイル名（JSON配列の文字列） */
+  report_photos: string;
   pending_offers: number;
   interested_offers: number;
 };
@@ -820,4 +825,40 @@ export function staffPayMonths(staffId: number, months: string[]): StaffPayMonth
     const p = get<{ paid_at: string }>(`SELECT paid_at FROM payouts WHERE staff_id = ? AND month = ?`, staffId, month);
     return { month, ...r, paid_at: p?.paid_at ?? null };
   });
+}
+
+/* ---------- 当日の入店・完了報告 ---------- */
+
+/** スタッフが入店したことを記録する。本人が担当の確定案件だけ */
+export function checkIn(jobId: number, staffId: number): boolean {
+  const r = run(
+    `UPDATE jobs SET checked_in_at = COALESCE(checked_in_at, datetime('now'))
+     WHERE id = ? AND staff_id = ? AND status = 'committed'`,
+    jobId,
+    staffId,
+  );
+  return Number(r.changes) > 0;
+}
+
+/** スタッフの完了報告。報告した時点で完了にし、報酬に集計する */
+export function reportComplete(jobId: number, staffId: number, note: string, photos: string[]): boolean {
+  const r = run(
+    `UPDATE jobs SET status = 'completed', completed_at = datetime('now'),
+       checked_in_at = COALESCE(checked_in_at, datetime('now')), report_note = ?, report_photos = ?
+     WHERE id = ? AND staff_id = ? AND status = 'committed'`,
+    note,
+    JSON.stringify(photos),
+    jobId,
+    staffId,
+  );
+  return Number(r.changes) > 0;
+}
+
+export function reportPhotos(job: Pick<Job, "report_photos">): string[] {
+  try {
+    const v = JSON.parse(job.report_photos ?? "[]");
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
 }

@@ -1,6 +1,7 @@
 // シフト管理の右パネル。案件の要点と希望者を出し、その場で確定できる。
 import Link from "next/link";
 import { confirmAction, jobStatusAction, openCallAction } from "@/app/admin/actions";
+import { JobReport } from "@/components/JobReport";
 import { JobPill } from "@/components/ui";
 import { KEY_METHODS } from "@/lib/constants";
 import * as repo from "@/lib/repo";
@@ -44,6 +45,13 @@ export function JobPanel({ jobId, back, close, confirm }: { jobId: number; back:
         <dt>鍵</dt><dd>{KEY_METHODS[job.key_method]}</dd>
         <dt>報酬</dt><dd className="num">{yen(job.pay)}{job.bonus > 0 && ` ＋上乗せ${yen(job.bonus)}`}</dd>
       </dl>
+
+      {(job.checked_in_at || job.status === "completed") && (
+        <section className="panel-sec">
+          <h3>当日の報告</h3>
+          <JobReport job={job} />
+        </section>
+      )}
 
       {recruiting && (
         <section className="panel-sec">
