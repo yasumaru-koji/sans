@@ -1,4 +1,4 @@
-// シフト表。行＝店舗またはスタッフ、列＝その月の日付。セルから案件の詳細へ飛べる。
+// シフト表。行＝店舗またはスタッフ、列＝その月の日付。セルを押すと右パネルに案件を開く。
 import Link from "next/link";
 import type { Job, Shop, Staff } from "@/lib/repo";
 import { daysOfMonth, minutesToLabel, weekdayOf } from "@/lib/time";
@@ -24,20 +24,35 @@ function DayHead({ days }: { days: string[] }) {
   );
 }
 
-function jobCell(j: Job) {
+/** カレンダーのセルは狭いので姓だけ出す。同じ姓の人がいるときはフルネーム */
+function shortNames(jobs: Job[]): Map<number, string> {
+  const full = new Map<number, string>();
+  for (const j of jobs) if (j.staff_id != null && j.staff_name) full.set(j.staff_id, j.staff_name);
+  const family = (n: string) => n.split(/[\s　]/)[0];
+  const count = new Map<string, number>();
+  for (const n of full.values()) count.set(family(n), (count.get(family(n)) ?? 0) + 1);
+  return new Map([...full].map(([id, n]) => [id, count.get(family(n))! > 1 ? n : family(n)]));
+}
+
+function jobCell(j: Job, names: Map<number, string>) {
   if (j.status === "committed" || j.status === "completed") {
-    return { cls: j.status, text: j.staff_name ?? "", sub: j.status === "completed" ? "完了" : "" };
+    return { cls: j.status, text: names.get(j.staff_id!) ?? j.staff_name ?? "", sub: j.status === "completed" ? "完了" : "" };
   }
   if (j.status === "offered") {
-    return { cls: "offered", text: j.open_call ? "全体募集" : "募集中", sub: `希望${j.interested_offers}` };
+    // 希望者がいるセルは本部が確定できるので目立たせる
+    const want = j.interested_offers > 0;
+    return { cls: want ? "offered want-in" : "offered", text: j.open_call ? "全体募集" : "募集中", sub: want ? `希望${j.interested_offers}人` : "" };
   }
   if (j.status === "open") return { cls: "open", text: "未案内", sub: "" };
   return { cls: "cancelled", text: "中止", sub: "" };
 }
 
-export function ShopBoard({ month, shops, jobs }: { month: string; shops: Shop[]; jobs: Job[] }) {
+type CellLink = { jobHref: (jobId: number) => string; selected?: number };
+
+export function ShopBoard({ month, shops, jobs, jobHref, selected }: { month: string; shops: Shop[]; jobs: Job[] } & CellLink) {
   const days = daysOfMonth(month);
   const byKey = new Map(jobs.map((j) => [`${j.shop_id}:${j.date}`, j]));
+  const names = shortNames(jobs);
   const rows = shops.filter((s) => s.active || jobs.some((j) => j.shop_id === s.id));
   if (rows.length === 0) return <p className="card muted">店舗が登録されていません。</p>;
   return (
@@ -61,10 +76,10 @@ export function ShopBoard({ month, shops, jobs }: { month: string; shops: Shop[]
                     const closed = s.closed_weekdays.includes(weekdayOf(d));
                     return <td key={d} className={closed ? "closed" : ""}>{closed && <span className="small muted">休</span>}</td>;
                   }
-                  const c = jobCell(j);
+                  const c = jobCell(j, names);
                   return (
                     <td key={d}>
-                      <Link href={`/admin/jobs/${j.id}`} className={`cell ${c.cls}`} title={`${s.name} ${minutesToLabel(j.start_time)}`}>
+                      <Link href={jobHref(j.id)} scroll={false} className={`cell ${c.cls}${selected === j.id ? " sel" : ""}`} title={`${s.name} ${minutesToLabel(j.start_time)}${j.staff_name ? ` ${j.staff_name}` : ""}`}>
                         <span className="t">{c.text}</span>
                         {c.sub && <span className="s">{c.sub}</span>}
                       </Link>
@@ -93,7 +108,9 @@ export function StaffBoard({
   jobs,
   available,
   interested,
-}: {
+  jobHref,
+  selected,
+}: CellLink & {
   month: string;
   staff: Staff[];
   jobs: Job[];
@@ -125,7 +142,7 @@ export function StaffBoard({
                   return (
                     <td key={d} className={av?.has(d) ? "avail" : ""}>
                       {today.map((j) => (
-                        <Link key={j.id} href={`/admin/jobs/${j.id}`} className={`cell ${j.status}`} title={`${j.shop_name} ${minutesToLabel(j.start_time)}`}>
+                        <Link key={j.id} href={jobHref(j.id)} scroll={false} className={`cell ${j.status}${selected === j.id ? " sel" : ""}`} title={`${j.shop_name} ${minutesToLabel(j.start_time)}`}>
                           <span className="t">{j.shop_name}</span>
                           <span className="s num">{minutesToLabel(j.start_time)}</span>
                         </Link>

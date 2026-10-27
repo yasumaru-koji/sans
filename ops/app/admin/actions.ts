@@ -163,7 +163,14 @@ export async function offerAction(jobId: number, fd: FormData) {
   redirect(`/admin/jobs/${jobId}?offered=${ids.length}&cw=${encodeSummary(cw)}`);
 }
 
-export async function confirmAction(jobId: number, staffId: number) {
+/** シフト管理の右パネルから操作したときは、そのパネルに戻す */
+function backTo(fd: FormData | undefined, params: string): string | null {
+  const back = fd?.get("back");
+  if (typeof back !== "string" || !back.startsWith("/admin/jobs?")) return null;
+  return `${back}&${params}`;
+}
+
+export async function confirmAction(jobId: number, staffId: number, fd?: FormData) {
   await requireAdmin();
   const r = repo.confirmJob(jobId, staffId);
   if (r.result === "committed") {
@@ -172,14 +179,15 @@ export async function confirmAction(jobId: number, staffId: number) {
     if (staff) await notifyCommitted(base, staff, [jobId]);
     await notifyNotChosen(base, r.notChosen.map((id) => ({ jobId, staffId: id })));
   }
-  redirect(`/admin/jobs/${jobId}?confirm=${r.result}`);
+  redirect(backTo(fd, `confirm=${r.result}`) ?? `/admin/jobs/${jobId}?confirm=${r.result}`);
 }
 
-export async function openCallAction(jobId: number) {
+export async function openCallAction(jobId: number, fd?: FormData) {
   await requireAdmin();
   const ok = repo.startOpenCall(jobId);
   const cw = ok ? await notifyOpenCall(await baseUrl(), [jobId]) : null;
-  redirect(`/admin/jobs/${jobId}?opencall=1${cw ? `&cw=${encodeSummary(cw)}` : ""}`);
+  const q = `opencall=1${cw ? `&cw=${encodeSummary(cw)}` : ""}`;
+  redirect(backTo(fd, q) ?? `/admin/jobs/${jobId}?${q}`);
 }
 
 export async function withdrawOfferAction(jobId: number, offerId: number) {
@@ -188,13 +196,13 @@ export async function withdrawOfferAction(jobId: number, offerId: number) {
   redirect(`/admin/jobs/${jobId}`);
 }
 
-export async function jobStatusAction(jobId: number, op: "complete" | "cancel" | "release" | "reopen") {
+export async function jobStatusAction(jobId: number, op: "complete" | "cancel" | "release" | "reopen", fd?: FormData) {
   await requireAdmin();
   if (op === "complete") repo.completeJob(jobId);
   if (op === "cancel") repo.cancelJob(jobId);
   if (op === "release") repo.releaseJob(jobId);
   if (op === "reopen") repo.reopenJob(jobId);
-  redirect(`/admin/jobs/${jobId}`);
+  redirect(backTo(fd, `done=${op}`) ?? `/admin/jobs/${jobId}`);
 }
 
 export async function bonusAction(jobId: number, fd: FormData) {
