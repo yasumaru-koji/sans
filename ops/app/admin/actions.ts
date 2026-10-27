@@ -214,3 +214,10 @@ export async function signOutAction() {
   await signOut();
   redirect("/login");
 }
+
+/** ホームの「完了にする」。画面はホームに戻す */
+export async function completeFromHomeAction(jobId: number) {
+  await requireAdmin();
+  repo.completeJob(jobId);
+  redirect("/admin");
+}

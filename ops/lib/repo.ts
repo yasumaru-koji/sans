@@ -760,3 +760,42 @@ export function unfilledJobs(fromDate: string, toDate: string): Job[] {
     toDate,
   );
 }
+
+/* ---------- 本部ホーム ---------- */
+
+/** その日の案件（中止を除く）。未確定を先に、あとは開始時刻順 */
+export function jobsOnDate(date: string): Job[] {
+  return all(
+    `${JOB_SELECT} WHERE j.date = ? AND j.status != 'cancelled'
+     ORDER BY j.status IN ('committed', 'completed'), j.start_time, sh.name`,
+    date,
+  );
+}
+
+/** 希望者が出ていて、本部の確定を待っている案件 */
+export function jobsAwaitingDecision(fromDate: string): Job[] {
+  return all(
+    `${JOB_SELECT} WHERE j.date >= ? AND j.status = 'offered'
+       AND EXISTS (SELECT 1 FROM offers o WHERE o.job_id = j.id AND o.status = 'interested')
+     ORDER BY j.date, j.start_time`,
+    fromDate,
+  );
+}
+
+/** 作業日を過ぎたのに完了になっていない確定案件 */
+export function jobsAwaitingCompletion(beforeDate: string): Job[] {
+  return all(
+    `${JOB_SELECT} WHERE j.date < ? AND j.status = 'committed' ORDER BY j.date, j.start_time`,
+    beforeDate,
+  );
+}
+
+/** 稼働中で、その月の予定をまだ登録していないスタッフ */
+export function staffWithoutAvailability(month: string): Staff[] {
+  return all(
+    `SELECT * FROM staff s WHERE s.status = 'active'
+       AND NOT EXISTS (SELECT 1 FROM availability_months a WHERE a.staff_id = s.id AND a.month = ?)
+     ORDER BY s.kana, s.name`,
+    month,
+  );
+}
