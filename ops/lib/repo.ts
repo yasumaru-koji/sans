@@ -862,3 +862,36 @@ export function reportPhotos(job: Pick<Job, "report_photos">): string[] {
     return [];
   }
 }
+
+/* ---------- スタッフ詳細・店舗詳細の実績 ---------- */
+
+/** スタッフの累計完了件数と、担当した店（多い順） */
+export function staffRecord(staffId: number): { completed: number; shops: { shop_id: number; name: string; n: number }[] } {
+  const completed = get<{ n: number }>(`SELECT COUNT(*) AS n FROM jobs WHERE staff_id = ? AND status = 'completed'`, staffId)!.n;
+  const shops = all<{ shop_id: number; name: string; n: number }>(
+    `SELECT j.shop_id, sh.name, COUNT(*) AS n FROM jobs j JOIN shops sh ON sh.id = j.shop_id
+     WHERE j.staff_id = ? AND j.status = 'completed' GROUP BY j.shop_id ORDER BY n DESC, sh.name LIMIT 8`,
+    staffId,
+  );
+  return { completed, shops };
+}
+
+/** その店によく入っているスタッフ（完了件数の多い順） */
+export function shopTeam(shopId: number): { staff_id: number; name: string; n: number; last: string }[] {
+  return all(
+    `SELECT j.staff_id, st.name, COUNT(*) AS n, MAX(j.date) AS last FROM jobs j JOIN staff st ON st.id = j.staff_id
+     WHERE j.shop_id = ? AND j.status = 'completed' GROUP BY j.staff_id ORDER BY n DESC, last DESC LIMIT 8`,
+    shopId,
+  );
+}
+
+/** その店の直近の作業（新しい順） */
+export function shopRecentJobs(shopId: number, beforeDate: string, limit = 10): Job[] {
+  return all(
+    `${JOB_SELECT} WHERE j.shop_id = ? AND j.date <= ? AND j.status IN ('committed', 'completed')
+     ORDER BY j.date DESC LIMIT ?`,
+    shopId,
+    beforeDate,
+    limit,
+  );
+}

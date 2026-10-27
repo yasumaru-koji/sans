@@ -45,7 +45,7 @@ export async function updateStaffAction(id: number, fd: FormData) {
   await requireAdmin();
   repo.updateStaff(id, staffInput(fd));
   revalidatePath(`/admin/staff/${id}`);
-  redirect(`/admin/staff/${id}?saved=1`);
+  redirect(`/admin/staff/${id}?tab=info&saved=1`);
 }
 
 export async function sendInviteAction(id: number) {
@@ -66,7 +66,7 @@ export async function saveStaffAvailabilityAction(staffId: number, fd: FormData)
   await requireAdmin();
   const a = parseAvailability(fd);
   repo.saveAvailability(staffId, a);
-  redirect(`/admin/staff/${staffId}?month=${a.month}&saved=1`);
+  redirect(`/admin/staff/${staffId}?tab=avail&month=${a.month}&saved=1`);
 }
 
 function shopInput(fd: FormData): repo.ShopInput {
@@ -91,13 +91,13 @@ export async function createShopAction(fd: FormData) {
   const input = shopInput(fd);
   if (!input.name || !input.area) redirect("/admin/shops/new?error=1");
   const id = repo.createShop(input);
-  redirect(`/admin/shops/${id}?created=1`);
+  redirect(`/admin/shops/${id}?tab=info&created=1`);
 }
 
 export async function updateShopAction(id: number, fd: FormData) {
   await requireAdmin();
   repo.updateShop(id, shopInput(fd));
-  redirect(`/admin/shops/${id}?saved=1`);
+  redirect(`/admin/shops/${id}?tab=info&saved=1`);
 }
 
 export async function generateJobsAction(fd: FormData) {
