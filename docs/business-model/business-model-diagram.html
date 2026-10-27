@@ -1,0 +1,200 @@
+<title>サロン締め作業代行 ビジネスモデル図</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
+<style>
+/* Layout: A4横（297×210mm）の紙面を1枚のSVGで描き、画面では幅に合わせて縮小。印刷用の白い紙面に固定した単一テーマ */
+:root{
+  --desk:#e6ecec; --paper:#ffffff; --ink:#1b2627; --muted:#5b6b6d;
+  --font:"Zen Kaku Gothic New","IPAGothic","Hiragino Sans","Yu Gothic",sans-serif;
+  color-scheme:light;
+}
+body{background:var(--desk);color:var(--ink);font-family:var(--font)}
+.wrap{padding-block:24px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;justify-items:center;gap:12px}
+.paper{width:100%;max-width:1188px;aspect-ratio:297/210;background:var(--paper);box-shadow:0 2px 14px rgba(27,38,39,.12)}
+.paper svg{display:block;width:100%;height:100%}
+.cap{font-size:12px;color:var(--muted);max-width:1188px;width:100%}
+svg text{font-family:var(--font)}
+@page{size:A4 landscape;margin:0}
+@media print{
+  body{background:#fff}
+  .wrap{padding:0}
+  .paper{width:297mm;height:210mm;max-width:none;box-shadow:none}
+  .cap{display:none}
+}
+</style>
+
+<div class="wrap">
+<div class="paper">
+<svg viewBox="0 0 1188 840" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="サロン、SaNS、清掃スタッフの関係とサービス・お金の流れを示すビジネスモデル図">
+  <defs>
+    <marker id="mMoney" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c4621d"/></marker>
+    <marker id="mInfo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6b7a7c"/></marker>
+    <marker id="mSvc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0f7c80"/></marker>
+    <g id="shop">
+      <path d="M2,14 L6,4 L34,4 L38,14 Z" fill="#0f7c80"/>
+      <path d="M2,14 q4.5,6 9,0 q4.5,6 9,0 q4.5,6 9,0 q4.5,6 9,0" fill="#e1f0f0" stroke="#0f7c80" stroke-width="1.5"/>
+      <rect x="5" y="19" width="30" height="19" fill="#ffffff" stroke="#0f7c80" stroke-width="2"/>
+      <rect x="9" y="24" width="9" height="14" fill="#0f7c80"/>
+      <rect x="22" y="24" width="9" height="7" fill="#e1f0f0" stroke="#0f7c80" stroke-width="1.5"/>
+    </g>
+    <g id="person">
+      <circle cx="20" cy="11" r="8" fill="#c4621d"/>
+      <path d="M5,38 C5,26 11,21 20,21 C29,21 35,26 35,38 Z" fill="#c4621d"/>
+    </g>
+  </defs>
+
+  <rect width="1188" height="840" fill="#ffffff"/>
+
+  <!-- タイトル -->
+  <text x="40" y="62" font-size="26" font-weight="900" fill="#1b2627">美容室 締め作業代行サービス　ビジネスモデル図</text>
+  <text x="40" y="90" font-size="13" fill="#5b6b6d">サロン・SaNS・清掃スタッフの関係と、サービスとお金の流れ（金額は1回あたり・税抜）</text>
+
+  <!-- 凡例 -->
+  <g font-size="12" fill="#1b2627">
+    <line x1="806" y1="58" x2="840" y2="58" stroke="#c4621d" stroke-width="3" marker-end="url(#mMoney)"/><text x="848" y="62">お金</text>
+    <line x1="896" y1="58" x2="930" y2="58" stroke="#0f7c80" stroke-width="5" marker-end="url(#mSvc)"/><text x="938" y="62">清掃サービス</text>
+    <line x1="1022" y1="58" x2="1056" y2="58" stroke="#6b7a7c" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#mInfo)"/><text x="1064" y="62">情報・依頼</text>
+  </g>
+
+  <!-- サロン群 -->
+  <rect x="30" y="120" width="270" height="420" rx="14" fill="#eef4f4"/>
+  <text x="165" y="150" font-size="18" font-weight="700" text-anchor="middle" fill="#0f7c80">サロン（顧客）</text>
+  <text x="165" y="170" font-size="11.5" text-anchor="middle" fill="#5b6b6d">中〜大型サロン・チェーン</text>
+  <g>
+    <rect x="48" y="186" width="234" height="78" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+    <use href="#shop" x="62" y="206"/>
+    <text x="116" y="218" font-size="15" font-weight="700" fill="#1b2627">サロンA</text>
+    <text x="116" y="241" font-size="11.5" fill="#5b6b6d">渋谷・スタイリスト12名</text>
+  </g>
+  <g>
+    <rect x="48" y="276" width="234" height="78" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+    <use href="#shop" x="62" y="296"/>
+    <text x="116" y="308" font-size="15" font-weight="700" fill="#1b2627">サロンB</text>
+    <text x="116" y="331" font-size="11.5" fill="#5b6b6d">新宿・スタイリスト9名</text>
+  </g>
+  <g>
+    <rect x="48" y="366" width="234" height="78" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+    <use href="#shop" x="62" y="386"/>
+    <text x="116" y="398" font-size="15" font-weight="700" fill="#1b2627">サロンC</text>
+    <text x="116" y="421" font-size="11.5" fill="#5b6b6d">池袋・スタイリスト15名</text>
+  </g>
+  <rect x="58" y="456" width="214" height="8" rx="4" fill="#d5e3e3"/>
+  <rect x="68" y="468" width="194" height="8" rx="4" fill="#e1ebeb"/>
+  <text x="165" y="506" font-size="13" font-weight="700" text-anchor="middle" fill="#0f7c80">ほか多数の店舗</text>
+  <text x="165" y="524" font-size="10.5" text-anchor="middle" fill="#5b6b6d">（店名・人数は例）</text>
+
+  <!-- 清掃スタッフ群 -->
+  <rect x="888" y="120" width="270" height="420" rx="14" fill="#fbf1ea"/>
+  <text x="1023" y="150" font-size="18" font-weight="700" text-anchor="middle" fill="#c4621d">清掃スタッフ（業務委託）</text>
+  <text x="1023" y="170" font-size="11.5" text-anchor="middle" fill="#5b6b6d">人材プールに多数が登録</text>
+  <g>
+    <rect x="906" y="186" width="234" height="78" rx="8" fill="#ffffff" stroke="#ead7c9"/>
+    <use href="#person" x="920" y="206"/>
+    <text x="974" y="218" font-size="15" font-weight="700" fill="#1b2627">スタッフA</text>
+    <text x="974" y="241" font-size="11.5" fill="#5b6b6d">渋谷エリア・月水金・★4.8</text>
+  </g>
+  <g>
+    <rect x="906" y="276" width="234" height="78" rx="8" fill="#ffffff" stroke="#ead7c9"/>
+    <use href="#person" x="920" y="296"/>
+    <text x="974" y="308" font-size="15" font-weight="700" fill="#1b2627">スタッフB</text>
+    <text x="974" y="331" font-size="11.5" fill="#5b6b6d">新宿エリア・火〜土・★4.6</text>
+  </g>
+  <g>
+    <rect x="906" y="366" width="234" height="78" rx="8" fill="#ffffff" stroke="#ead7c9"/>
+    <use href="#person" x="920" y="386"/>
+    <text x="974" y="398" font-size="15" font-weight="700" fill="#1b2627">スタッフC</text>
+    <text x="974" y="421" font-size="11.5" fill="#5b6b6d">池袋エリア・週末・★4.9</text>
+  </g>
+  <rect x="916" y="456" width="214" height="8" rx="4" fill="#f0dccd"/>
+  <rect x="926" y="468" width="194" height="8" rx="4" fill="#f5e6da"/>
+  <text x="1023" y="506" font-size="13" font-weight="700" text-anchor="middle" fill="#c4621d">ほか多数のスタッフ</text>
+  <text x="1023" y="524" font-size="10.5" text-anchor="middle" fill="#5b6b6d">（エリア・稼働日・評価は例）</text>
+
+  <!-- SaNS -->
+  <rect x="474" y="176" width="240" height="304" rx="14" fill="#ffffff" stroke="#0f7c80" stroke-width="3"/>
+  <path d="M474,190 a14,14 0 0 1 14,-14 h212 a14,14 0 0 1 14,14 v52 h-240 z" fill="#0f7c80"/>
+  <text x="594" y="212" font-size="26" font-weight="900" text-anchor="middle" fill="#ffffff">SaNS</text>
+  <text x="594" y="233" font-size="12" text-anchor="middle" fill="#e1f0f0">運営本部・マッチングシステム</text>
+  <g font-size="13" fill="#1b2627">
+    <rect x="494" y="262" width="7" height="7" fill="#0f7c80"/><text x="510" y="270">スタッフ募集・業務委託契約</text>
+    <rect x="494" y="290" width="7" height="7" fill="#0f7c80"/><text x="510" y="298">案件の案内とマッチング</text>
+    <text x="510" y="317" font-size="11" fill="#5b6b6d">エリア・稼働可能日時・評価で選定</text>
+    <rect x="494" y="337" width="7" height="7" fill="#0f7c80"/><text x="510" y="345">品質管理（写真レポート）</text>
+    <rect x="494" y="365" width="7" height="7" fill="#0f7c80"/><text x="510" y="373">店舗への請求</text>
+    <rect x="494" y="393" width="7" height="7" fill="#0f7c80"/><text x="510" y="401">スタッフへの報酬支払い</text>
+  </g>
+  <line x1="494" y1="424" x2="694" y2="424" stroke="#cfd9d9"/>
+  <text x="594" y="453" font-size="16" font-weight="700" text-anchor="middle" fill="#0f7c80">粗利 3,000円／回（50%）</text>
+
+  <!-- サロン ⇄ SaNS -->
+  <line x1="306" y1="232" x2="464" y2="232" stroke="#c4621d" stroke-width="3" marker-end="url(#mMoney)"/>
+  <text x="387" y="220" font-size="13.5" font-weight="700" text-anchor="middle" fill="#c4621d">清掃料金 6,000円／回</text>
+  <text x="387" y="251" font-size="11" text-anchor="middle" fill="#5b6b6d">1店 月25回＝月15万円</text>
+
+  <line x1="306" y1="322" x2="464" y2="322" stroke="#6b7a7c" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#mInfo)"/>
+  <text x="387" y="310" font-size="12" text-anchor="middle" fill="#1b2627">清掃の依頼・閉店時刻</text>
+  <text x="387" y="341" font-size="11" text-anchor="middle" fill="#5b6b6d">スタッフへの評価</text>
+
+  <line x1="466" y1="412" x2="308" y2="412" stroke="#6b7a7c" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#mInfo)"/>
+  <text x="387" y="400" font-size="12" text-anchor="middle" fill="#1b2627">写真付き完了レポート</text>
+  <text x="387" y="431" font-size="11" text-anchor="middle" fill="#5b6b6d">月次の請求書</text>
+
+  <!-- SaNS ⇄ スタッフ -->
+  <line x1="722" y1="232" x2="880" y2="232" stroke="#c4621d" stroke-width="3" marker-end="url(#mMoney)"/>
+  <text x="801" y="220" font-size="13.5" font-weight="700" text-anchor="middle" fill="#c4621d">委託報酬 3,000円／回</text>
+  <text x="801" y="251" font-size="11" text-anchor="middle" fill="#5b6b6d">清掃1件（約1時間）ごと</text>
+
+  <line x1="722" y1="322" x2="880" y2="322" stroke="#6b7a7c" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#mInfo)"/>
+  <text x="801" y="310" font-size="12" text-anchor="middle" fill="#1b2627">案件の案内・確定の連絡</text>
+  <text x="801" y="341" font-size="11" text-anchor="middle" fill="#5b6b6d">マイページ・チャットワーク</text>
+
+  <line x1="882" y1="412" x2="724" y2="412" stroke="#6b7a7c" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#mInfo)"/>
+  <text x="801" y="400" font-size="12" text-anchor="middle" fill="#1b2627">稼働可能日時・エリアの登録</text>
+  <text x="801" y="431" font-size="11" text-anchor="middle" fill="#5b6b6d">希望／見送り・完了報告</text>
+
+  <!-- スタッフ → サロン（清掃作業） -->
+  <path d="M1023,540 V594 Q1023,606 1011,606 H177 Q165,606 165,594 V552" fill="none" stroke="#0f7c80" stroke-width="5" marker-end="url(#mSvc)"/>
+  <rect x="384" y="574" width="420" height="24" fill="#ffffff"/>
+  <text x="594" y="592" font-size="15" font-weight="700" text-anchor="middle" fill="#0f7c80">清掃作業（閉店後に入店・約1時間・原則毎日）</text>
+
+  <!-- 収支の前提 -->
+  <rect x="30" y="636" width="1128" height="166" rx="14" fill="#f4f7f7"/>
+  <text x="54" y="668" font-size="14" font-weight="700" fill="#1b2627">サロンが支払う清掃料金 6,000円／回の配分</text>
+  <rect x="54" y="684" width="280" height="46" fill="#c4621d"/>
+  <rect x="334" y="684" width="280" height="46" fill="#0f7c80"/>
+  <text x="194" y="713" font-size="14" font-weight="700" text-anchor="middle" fill="#ffffff">清掃スタッフの報酬 3,000円</text>
+  <text x="474" y="713" font-size="14" font-weight="700" text-anchor="middle" fill="#ffffff">SaNSの粗利 3,000円</text>
+  <text x="54" y="756" font-size="11.5" fill="#5b6b6d">報酬は作業1時間あたり3,000円で、夜間パート（時給1,360〜1,700円）を上回る水準</text>
+  <text x="54" y="776" font-size="11.5" fill="#5b6b6d">スタッフは稼働日時を自分で登録し、案件ごとに「希望／見送り」を選べる業務委託</text>
+
+  <g>
+    <rect x="652" y="656" width="116" height="122" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+    <text x="710" y="684" font-size="11.5" text-anchor="middle" fill="#5b6b6d">1店あたり</text>
+    <text x="710" y="722" font-size="24" font-weight="700" text-anchor="middle" fill="#1b2627">月25回</text>
+    <text x="710" y="752" font-size="10.5" text-anchor="middle" fill="#5b6b6d">原則毎日</text>
+  </g>
+  <g>
+    <rect x="776" y="656" width="116" height="122" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+    <text x="834" y="684" font-size="11.5" text-anchor="middle" fill="#5b6b6d">1店の売上</text>
+    <text x="834" y="722" font-size="24" font-weight="700" text-anchor="middle" fill="#1b2627">15万円</text>
+    <text x="834" y="752" font-size="10.5" text-anchor="middle" fill="#5b6b6d">月額</text>
+  </g>
+  <g>
+    <rect x="900" y="656" width="116" height="122" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+    <text x="958" y="684" font-size="11.5" text-anchor="middle" fill="#5b6b6d">1店の粗利</text>
+    <text x="958" y="722" font-size="24" font-weight="700" text-anchor="middle" fill="#0f7c80">7.5万円</text>
+    <text x="958" y="752" font-size="10.5" text-anchor="middle" fill="#5b6b6d">月額</text>
+  </g>
+  <g>
+    <rect x="1024" y="656" width="116" height="122" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+    <text x="1082" y="684" font-size="11.5" text-anchor="middle" fill="#5b6b6d">損益分岐</text>
+    <text x="1082" y="722" font-size="24" font-weight="700" text-anchor="middle" fill="#1b2627">6店</text>
+    <text x="1082" y="752" font-size="10.5" text-anchor="middle" fill="#5b6b6d">固定費 月40万円</text>
+  </g>
+
+  <text x="40" y="826" font-size="10" fill="#5b6b6d">数値は2026年10月時点の事業計画の前提（仮定）です。</text>
+  <text x="1148" y="826" font-size="10" text-anchor="end" fill="#5b6b6d">株式会社SaNS</text>
+</svg>
+</div>
+<p class="cap">A4横1枚のビジネスモデル図です。PDF版も用意しています。</p>
+</div>
