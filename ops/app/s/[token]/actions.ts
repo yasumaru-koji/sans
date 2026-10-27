@@ -13,7 +13,7 @@ function staffOrThrow(token: string) {
 export async function respondAction(token: string, offerId: number, interested: boolean) {
   const s = staffOrThrow(token);
   const r = repo.respondOffer(s.id, offerId, interested);
-  redirect(`/s/${token}?r=${r}`);
+  redirect(`/s/${token}/offers?r=${r}`);
 }
 
 /** 案内が届いている案件すべてに稼働を希望する */
@@ -23,13 +23,13 @@ export async function interestAllAction(token: string) {
   for (const o of repo.pendingOffersForStaff(s.id)) {
     if (repo.respondOffer(s.id, o.offer_id, true) === "interested") n++;
   }
-  redirect(`/s/${token}?all=${n}`);
+  redirect(`/s/${token}/offers?all=${n}`);
 }
 
 export async function applyOpenCallAction(token: string, jobId: number) {
   const s = staffOrThrow(token);
   const r = repo.applyOpenCall(s.id, jobId);
-  redirect(`/s/${token}?r=${r}`);
+  redirect(`/s/${token}/offers?r=${r}`);
 }
 
 export async function saveAvailabilityAction(token: string, fd: FormData) {

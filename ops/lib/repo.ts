@@ -799,3 +799,25 @@ export function staffWithoutAvailability(month: string): Staff[] {
     month,
   );
 }
+
+/* ---------- スタッフの報酬 ---------- */
+
+export type StaffPayMonth = { month: string; done: number; doneAmount: number; planned: number; plannedAmount: number; paid_at: string | null };
+
+/** スタッフの月ごとの報酬。完了分と、確定済みでまだ作業していない分を分ける */
+export function staffPayMonths(staffId: number, months: string[]): StaffPayMonth[] {
+  return months.map((month) => {
+    const r = get<{ done: number; doneAmount: number; planned: number; plannedAmount: number }>(
+      `SELECT
+         COALESCE(SUM(status = 'completed'), 0) AS done,
+         COALESCE(SUM(CASE WHEN status = 'completed' THEN pay + bonus END), 0) AS doneAmount,
+         COALESCE(SUM(status = 'committed'), 0) AS planned,
+         COALESCE(SUM(CASE WHEN status = 'committed' THEN pay + bonus END), 0) AS plannedAmount
+       FROM jobs WHERE staff_id = ? AND date LIKE ?`,
+      staffId,
+      `${month}-%`,
+    )!;
+    const p = get<{ paid_at: string }>(`SELECT paid_at FROM payouts WHERE staff_id = ? AND month = ?`, staffId, month);
+    return { month, ...r, paid_at: p?.paid_at ?? null };
+  });
+}

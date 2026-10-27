@@ -220,7 +220,7 @@ export function AvailabilityForm({
         </label>
       </section>
 
-      <button type="submit" className="big" disabled={areas.size === 0}>
+      <button type="submit" className="big sticky-save" disabled={areas.size === 0}>
         {monthLabel(month)}の予定を保存
       </button>
       {areas.size === 0 && <p className="small muted">エリアを1つ以上選んでください。</p>}

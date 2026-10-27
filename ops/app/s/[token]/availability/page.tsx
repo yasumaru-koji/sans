@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AvailabilityForm } from "@/components/AvailabilityForm";
 import { MonthNav } from "@/components/ui";
@@ -24,11 +23,8 @@ export default async function StaffAvailability({
   const committed = repo.jobsForStaff(staff.id, `${month}-01`).filter((j) => j.date.startsWith(month));
 
   return (
-    <main className="page narrow">
-      <div className="head">
-        <h1>稼働できる日時の登録</h1>
-        <Link href={`/s/${token}`}>マイページへ</Link>
-      </div>
+    <main className="page narrow staff-page">
+      <h1>稼働できる日時の登録</h1>
       <MonthNav month={month} base={`/s/${token}/availability`} />
       {sp.saved && <p className="notice good">{monthLabel(month)}の予定を保存しました。合う案件があると、マイページとチャットワークに案内が届きます。</p>}
       <p className="small muted">毎月20日ごろに翌月分の案内を送ります。それまでに翌月の稼働できる日時を登録してください。</p>

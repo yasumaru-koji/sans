@@ -252,3 +252,39 @@ ul.applicants .pill { margin-left: 6px; }
 @media (max-width: 600px) { .panel { top: auto; max-height: 85vh; width: 100vw; border-left: 0; border-top: 1px solid var(--line); border-radius: 14px 14px 0 0; } }
 .cell.want-in { background: var(--warn); color: var(--surface); }
 @media (min-width: 1200px) { .admin-main:has(.panel) .page { margin-right: 420px; } }
+
+/* スタッフのマイページ（スマホ前提）：下タブ */
+.staff-app { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+.staff-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+.staff-tabs a { position: relative; display: grid; justify-items: center; gap: 0; padding: 8px 0 9px; text-decoration: none; color: var(--muted); font-size: 12px; font-weight: 600; }
+.staff-tabs a .ic { font-size: 20px; line-height: 1.2; }
+.staff-tabs a.on { color: var(--accent); }
+.staff-tabs a .badge { position: absolute; top: 4px; left: calc(50% + 6px); }
+.staff-page { gap: 18px; padding-top: 20px; }
+.staff-page h1 { font-size: 20px; }
+.alert-link { display: grid; gap: 2px; padding: 14px 16px; border-radius: 10px; background: var(--accent); color: var(--accent-fg); text-decoration: none; }
+.alert-link span { font-size: 13px; opacity: .9; }
+.alert-link.soft { background: var(--warn-soft); color: var(--fg); border: 1px solid var(--warn); }
+.next-job { border: 2px solid var(--accent); }
+.next-job .shop { font-size: 18px; }
+.next-job .pill { justify-self: start; }
+.offer .btn.big, .offer button.big { width: 100%; text-align: center; padding: 14px 18px; font-size: 16px; }
+.offer.soft { background: var(--bg); border-style: dashed; }
+.offer .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.offer .two button { width: 100%; }
+.offer > .pill { justify-self: start; }
+ul.sched { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+ul.sched li + li { border-top: 1px solid var(--line); }
+ul.sched a, ul.sched .pay-row { display: flex; justify-content: space-between; gap: 10px; padding: 12px 14px; text-decoration: none; color: var(--fg); align-items: center; }
+.pay-mini { display: grid; gap: 2px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-decoration: none; color: var(--fg); }
+.pay-mini b { font-size: 22px; }
+.big-num { font-size: 30px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--line); border-radius: 10px; }
+.seg a { text-align: center; padding: 8px; border-radius: 8px; text-decoration: none; color: var(--muted); font-weight: 600; font-size: 14px; }
+.seg a.on { background: var(--surface); color: var(--fg); }
+.sticky-save { position: sticky; bottom: calc(80px + env(safe-area-inset-bottom)); box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+ul.offer-rows { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+ul.offer-rows li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 10px 12px; }
+ul.offer-rows li + li { border-top: 1px solid var(--line); }
+ul.offer-rows .info { display: grid; line-height: 1.4; }
+ul.offer-rows button { padding: 10px 12px; min-width: 64px; }
