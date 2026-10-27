@@ -329,3 +329,27 @@ ul.offer-rows li.ng { background: var(--bad-soft); }
 .ng-check { color: var(--bad); font-weight: 700; }
 button.danger-fill { background: var(--bad); border-color: var(--bad); color: #fff; }
 .pill.returned { background: var(--bad-soft); color: var(--bad); }
+
+/* スタッフのシフトカレンダー（1日最大3件） */
+.scal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.scal .wd { text-align: center; font-size: 12px; color: var(--muted); }
+.scal .wd.sun, .scal .cell.sun .d { color: var(--bad); }
+.scal .wd.sat, .scal .cell.sat .d { color: var(--accent); }
+.scal .cell { min-height: 74px; display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font: inherit; color: var(--fg); text-align: left; min-width: 0; }
+.scal div.cell { background: transparent; border-style: dashed; opacity: .6; }
+.scal button.cell { cursor: pointer; }
+.scal .cell.sel { outline: 2px solid var(--fg); outline-offset: 1px; }
+.scal .cell .d { font-size: 12px; font-weight: 700; line-height: 1.2; padding-left: 2px; }
+.scal .bar { display: block; font-size: 10px; font-weight: 700; line-height: 1.6; text-align: center; border-radius: 3px; background: var(--accent); color: var(--accent-fg); font-family: var(--mono); white-space: nowrap; overflow: hidden; }
+.scal .bar.locked { background: var(--line); color: var(--muted); }
+.scal .bar.ng { background: var(--bad); color: #fff; font-family: var(--font); }
+.day-detail { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.day-detail ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.day-detail li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.day-detail li.ng { background: var(--bad-soft); border-color: var(--bad); }
+.day-detail .info { display: grid; line-height: 1.4; min-width: 0; }
+.ng-toggle { display: inline-flex; align-items: center; color: var(--bad); font-size: 14px; font-weight: 700; }
+.ng-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ng-toggle span { padding: 10px 14px; border: 1px solid var(--bad); border-radius: 8px; white-space: nowrap; }
+.ng-toggle.on span { background: var(--bad); color: #fff; }
+.ng-toggle input:focus-visible + span { outline: 2px solid var(--bad); outline-offset: 2px; }

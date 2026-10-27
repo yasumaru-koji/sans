@@ -40,7 +40,7 @@ export default async function StaffShifts({
       {Number(sp.late) > 0 && <p className="notice bad">{sp.late}件は期限を過ぎていたため送れませんでした。本部へ直接連絡してください。</p>}
 
       <p className="small muted">
-        登録した日時から本部がシフトを入れています。都合が悪い日は、作業日の{DECLINE_DEADLINE_DAYS}日前までに日付を押して「不可」を送ってください。
+        登録した日時から本部がシフトを入れています（1日に最大3件）。都合が悪いシフトは、作業日の{DECLINE_DEADLINE_DAYS}日前までに日付を押して「不可」を付けて送ってください。
         それ以降は本部へ直接連絡してください。
       </p>
 
@@ -53,6 +53,7 @@ export default async function StaffShifts({
             id: j.id,
             date: j.date,
             time: minutesToLabel(j.start_time),
+            end: minutesToLabel(j.start_time + j.work_minutes),
             shop: j.shop_name,
             area: j.area,
             declinable: j.date >= from,
