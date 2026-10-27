@@ -104,7 +104,7 @@ describe("案内から確定まで", () => {
     const job = jobOn("2026-11-05");
     expect(respondOffer(a, pendingOffersForStaff(a)[0].offer_id, false)).toBe("declined");
     expect(getJob(job.id)!.status).toBe("open");
-    expect(candidatesForJob(job.id).find((x) => x.staffId === a)!.blockers).toContain("この案件は見送り済み");
+    expect(candidatesForJob(job.id).find((x) => x.staffId === a)!.blockers).toContain("この案件は見送り・不可");
   });
 
   it("適任がいない案件を全体募集にすると、予定未登録の人も希望できる", () => {

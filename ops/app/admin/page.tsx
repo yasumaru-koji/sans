@@ -25,6 +25,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ r
   const decisions = repo.jobsAwaitingDecision(today);
   const soonUnfilled = repo.unfilledJobs(today, in3days).filter((j) => j.date !== today && j.interested_offers === 0);
   const toComplete = repo.jobsAwaitingCompletion(today);
+  const declined = repo.declinedOpenJobs(today);
   const unregistered = repo.staffWithoutAvailability(next);
   const nextStats = repo.monthStats(next);
 
@@ -32,7 +33,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ r
   const total = Object.values(s.by).reduce((a, b) => a + (b ?? 0), 0) - (s.by.cancelled ?? 0);
   const filled = (s.by.committed ?? 0) + (s.by.completed ?? 0);
   const fillRate = total ? Math.round((filled / total) * 100) : 0;
-  const todoCount = (decisions.length ? 1 : 0) + (soonUnfilled.length ? 1 : 0) + (toComplete.length ? 1 : 0) + (unregistered.length ? 1 : 0);
+  const todoCount = (declined.length ? 1 : 0) + (decisions.length ? 1 : 0) + (soonUnfilled.length ? 1 : 0) + (toComplete.length ? 1 : 0) + (unregistered.length ? 1 : 0);
 
   return (
     <main className="page">
@@ -98,11 +99,25 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ r
         <h2>要対応 <span className="muted small">{todoCount}件</span></h2>
         {todoCount === 0 && <p className="muted">いま対応が必要なことはありません。</p>}
         <div className="todo">
+          {declined.length > 0 && (
+            <div className="todo-item">
+              <div>
+                <b>スタッフから不可が返ってきた案件 {declined.length}件</b>
+                <p className="muted small">
+                  {declined.slice(0, 4).map((j) => `${dateLabel(j.date)} ${j.shop_name}（${j.declined_by}${j.decline_note ? `：${j.decline_note}` : ""}）`).join("、")}
+                  {declined.length > 4 && ` ほか${declined.length - 4}件`}
+                </p>
+              </div>
+              <div className="row">
+                <Link className="btn" href={`/admin/jobs?month=${declined[0].date.slice(0, 7)}&job=${declined[0].id}`}>代わりの人を入れる</Link>
+              </div>
+            </div>
+          )}
           {decisions.length > 0 && (
             <div className="todo-item">
               <div>
-                <b>希望者が出ている案件 {decisions.length}件</b>
-                <p className="muted small">スタッフの希望だけでは確定しません。担当を選んで確定してください。</p>
+                <b>全体募集に希望者が出ている案件 {decisions.length}件</b>
+                <p className="muted small">希望者の中から担当を選んで確定してください。</p>
               </div>
               <div className="row">
                 <Link className="btn" href={`/admin/jobs?month=${decisions[0].date.slice(0, 7)}`}>シフト管理で確定する</Link>
@@ -112,7 +127,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ r
           {soonUnfilled.length > 0 && (
             <div className="todo-item">
               <div>
-                <b>3日以内で希望者がいない案件 {soonUnfilled.length}件</b>
+                <b>3日以内で担当が決まっていない案件 {soonUnfilled.length}件</b>
                 <p className="muted small">
                   {soonUnfilled.slice(0, 4).map((j) => `${dateLabel(j.date)} ${j.shop_name}`).join("、")}
                   {soonUnfilled.length > 4 && ` ほか${soonUnfilled.length - 4}件`}
@@ -186,10 +201,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ r
             案件の作成 <span className="num">{Object.values(nextStats.by).reduce((a, b) => a + (b ?? 0), 0) - (nextStats.by.cancelled ?? 0)}件</span>
           </li>
           <li className={(nextStats.by.open ?? 0) === 0 && (nextStats.by.offered ?? 0) + (nextStats.by.committed ?? 0) > 0 ? "done" : undefined}>
-            案内 <span className="num">案内済{(nextStats.by.offered ?? 0) + (nextStats.by.committed ?? 0)}件・未案内{nextStats.by.open ?? 0}件</span>
+            シフト組み <span className="num">確定{nextStats.by.committed ?? 0}件・未割当{nextStats.by.open ?? 0}件</span>
           </li>
           <li className={(nextStats.by.committed ?? 0) > 0 && (nextStats.by.offered ?? 0) + (nextStats.by.open ?? 0) === 0 ? "done" : undefined}>
-            確定 <span className="num">{nextStats.by.committed ?? 0}件</span>
+            全体募集 <span className="num">募集中{nextStats.by.offered ?? 0}件</span>
           </li>
         </ol>
       </section>

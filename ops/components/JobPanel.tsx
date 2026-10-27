@@ -1,6 +1,6 @@
 // シフト管理の右パネル。案件の要点と希望者を出し、その場で確定できる。
 import Link from "next/link";
-import { confirmAction, jobStatusAction, openCallAction } from "@/app/admin/actions";
+import { assignAction, confirmAction, jobStatusAction, openCallAction } from "@/app/admin/actions";
 import { JobReport } from "@/components/JobReport";
 import { JobPill } from "@/components/ui";
 import { KEY_METHODS } from "@/lib/constants";
@@ -8,7 +8,7 @@ import * as repo from "@/lib/repo";
 import { dateLabel, minutesToLabel, yen } from "@/lib/time";
 
 const RESULT: Record<string, { text: string; tone: string }> = {
-  committed: { text: "担当を確定しました。", tone: "good" },
+  committed: { text: "シフトに入れました。本人にチャットワークで知らせています。", tone: "good" },
   clash: { text: "この人は同じ夜に別の確定案件があるため確定できません。", tone: "bad" },
   invalid: { text: "確定できませんでした。希望が取り消されたか、すでに確定済みです。", tone: "bad" },
   done_complete: { text: "完了にしました。報酬に集計されます。", tone: "good" },
@@ -19,7 +19,7 @@ export function JobPanel({ jobId, back, close, confirm }: { jobId: number; back:
   if (!job) return null;
   const recruiting = job.status === "open" || job.status === "offered";
   const applicants = recruiting ? repo.applicantsForJob(job.id) : [];
-  const eligibleCount = recruiting ? repo.candidatesForJob(job.id).filter((c) => c.eligible).length : 0;
+  const eligible = recruiting ? repo.assignableForJob(job.id).filter((c) => c.eligible) : [];
   const result = confirm ? RESULT[confirm] : undefined;
   const Back = () => <input type="hidden" name="back" value={back} />;
 
@@ -55,14 +55,32 @@ export function JobPanel({ jobId, back, close, confirm }: { jobId: number; back:
 
       {recruiting && (
         <section className="panel-sec">
-          <h3>稼働を希望しているスタッフ（{applicants.length}人）</h3>
           {applicants.length === 0 ? (
-            <p className="muted small">
-              {job.status === "open"
-                ? eligibleCount > 0 ? `条件に合うスタッフが${eligibleCount}人います。まだ案内していません。` : "条件に合うスタッフがいません。全体募集を検討してください。"
-                : `案内済みで、回答待ち${job.pending_offers}人です。`}
-            </p>
+            <>
+              <h3>この日に入れるスタッフ（{eligible.length}人）</h3>
+              {eligible.length === 0 ? (
+                <p className="muted small">稼働登録に合うスタッフがいません。全体募集を検討してください。</p>
+              ) : (
+                <ul className="applicants">
+                  {eligible.slice(0, 6).map((c, i) => (
+                    <li key={c.staffId}>
+                      <div>
+                        <b>{c.name}</b>
+                        {i === 0 && <span className="pill committed">おすすめ</span>}
+                        <p className="muted small">{c.notes.join("、")}</p>
+                      </div>
+                      <form action={assignAction.bind(null, job.id, c.staffId)}>
+                        <Back />
+                        <button type="submit">入れる</button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           ) : (
+            <>
+            <h3>全体募集に希望したスタッフ（{applicants.length}人）</h3>
             <ul className="applicants">
               {applicants.map((c, i) => (
                 <li key={c.staffId}>
@@ -78,6 +96,7 @@ export function JobPanel({ jobId, back, close, confirm }: { jobId: number; back:
                 </li>
               ))}
             </ul>
+            </>
           )}
         </section>
       )}

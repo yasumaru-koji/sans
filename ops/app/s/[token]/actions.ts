@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { CLOSING_CHECKS, REPORT_QUESTIONS, type ReportAnswers } from "@/lib/constants";
 import { parseAvailability } from "@/lib/form";
 import { savePhotos } from "@/lib/photos";
-import { notifyAdminProgress } from "@/lib/notify";
+import { notifyAdminDeclined, notifyAdminProgress } from "@/lib/notify";
+import { todayJst } from "@/lib/time";
 import * as repo from "@/lib/repo";
 
 function staffOrThrow(token: string) {
@@ -16,13 +17,13 @@ function staffOrThrow(token: string) {
 export async function respondAction(token: string, offerId: number, interested: boolean) {
   const s = staffOrThrow(token);
   const r = repo.respondOffer(s.id, offerId, interested);
-  redirect(`/s/${token}/offers?r=${r}`);
+  redirect(`/s/${token}/shifts?r=${r}`);
 }
 
 export async function applyOpenCallAction(token: string, jobId: number) {
   const s = staffOrThrow(token);
   const r = repo.applyOpenCall(s.id, jobId);
-  redirect(`/s/${token}/offers?r=${r}`);
+  redirect(`/s/${token}/shifts?r=${r}`);
 }
 
 export async function saveAvailabilityAction(token: string, fd: FormData) {
@@ -56,16 +57,19 @@ export async function reportAction(token: string, jobId: number, fd: FormData) {
   redirect(`/s/${token}/jobs/${jobId}?r=${ok ? "done" : "invalid"}`);
 }
 
-/** カレンダーでまとめて回答する。選んだ案件は希望、それ以外は見送り */
-export async function respondBulkAction(token: string, fd: FormData) {
+/** 入ったシフトのうち、チェックした日を不可で本部に返す（作業日の7日前まで） */
+export async function declineShiftsAction(token: string, fd: FormData) {
   const s = staffOrThrow(token);
-  const want = new Set(fd.getAll("want").map(Number));
-  let yes = 0;
-  let no = 0;
-  for (const id of new Set(fd.getAll("all").map(Number))) {
-    const r = repo.respondOffer(s.id, id, want.has(id));
-    if (r === "interested") yes++;
-    if (r === "declined") no++;
+  const note = String(fd.get("note") ?? "").slice(0, 200);
+  const today = todayJst();
+  const done: number[] = [];
+  let late = 0;
+  for (const id of new Set(fd.getAll("ng").map(Number))) {
+    const r = repo.declineAssignment(s.id, id, today, note);
+    if (r === "declined") done.push(id);
+    if (r === "too_late") late++;
   }
-  redirect(`/s/${token}/offers?yes=${yes}&no=${no}`);
+  // 戻った案件は未割当になるので、本部に知らせる
+  await notifyAdminDeclined(s, done, note);
+  redirect(`/s/${token}/shifts?ng=${done.length}&late=${late}`);
 }

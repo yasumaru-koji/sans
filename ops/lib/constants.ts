@@ -24,7 +24,7 @@ export const KEY_METHODS = {
 export type KeyMethod = keyof typeof KEY_METHODS;
 
 export const JOB_STATUS = {
-  open: "未案内",
+  open: "未割当",
   offered: "募集中",
   committed: "確定",
   completed: "完了",
@@ -37,6 +37,7 @@ export const OFFER_STATUS = {
   interested: "希望",
   accepted: "確定",
   declined: "見送り",
+  returned: "不可",
   closed: "締切",
   withdrawn: "取り下げ",
 } as const;
@@ -69,3 +70,6 @@ export const REPORT_QUESTIONS = [
   { key: "trouble", label: "設備の不具合・破損", multi: false, options: ["なし", "あり（連絡欄に記入）"] },
 ] as const;
 export type ReportAnswers = Record<string, string[]>;
+
+// スタッフが入ったシフトを「不可」で返せるのは、作業日の何日前まで
+export const DECLINE_DEADLINE_DAYS = 7;

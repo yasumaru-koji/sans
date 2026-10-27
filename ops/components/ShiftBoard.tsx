@@ -43,7 +43,7 @@ function jobCell(j: Job, names: Map<number, string>) {
     const want = j.interested_offers > 0;
     return { cls: want ? "offered want-in" : "offered", text: j.open_call ? "全体募集" : "募集中", sub: want ? `希望${j.interested_offers}人` : "" };
   }
-  if (j.status === "open") return { cls: "open", text: "未案内", sub: "" };
+  if (j.status === "open") return { cls: "open", text: "未割当", sub: "" };
   return { cls: "cancelled", text: "中止", sub: "" };
 }
 

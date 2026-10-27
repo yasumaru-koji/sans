@@ -8,7 +8,7 @@ export function StaffTabs({ token, offers }: { token: string; offers: number }) 
   const base = `/s/${token}`;
   const tabs = [
     { href: base, label: "ホーム", icon: "⌂" },
-    { href: `${base}/offers`, label: "案内", icon: "✉", badge: offers },
+    { href: `${base}/shifts`, label: "シフト", icon: "▤", badge: offers },
     { href: `${base}/availability`, label: "予定登録", icon: "▦" },
     { href: `${base}/pay`, label: "報酬", icon: "¥" },
   ];

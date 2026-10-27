@@ -12,6 +12,7 @@ import {
   notifyNotChosen,
   notifyOpenCall,
   notifyPendingOffers,
+  notifyAssigned,
   remindStaff,
 } from "@/lib/notify";
 import * as repo from "@/lib/repo";
@@ -238,4 +239,23 @@ export async function remindAction(kind: "eve" | "day") {
   const date = kind === "eve" ? new Date(Date.parse(`${today}T00:00:00Z`) + 864e5).toISOString().slice(0, 10) : today;
   const cw = await remindStaff(await baseUrl(), date, kind);
   redirect(`/admin?remind=${kind}&cw=${encodeSummary(cw)}`);
+}
+
+/** 稼働登録から月のシフトを自動で組み、入った人に知らせる */
+export async function autoAssignAction(fd: FormData) {
+  await requireAdmin();
+  const month = str(fd, "month");
+  if (!isMonth(month)) redirect("/admin/jobs");
+  const r = repo.autoAssignMonth(month);
+  const cw = await notifyAssigned(await baseUrl(), r.assigned);
+  redirect(`/admin/jobs?month=${month}&assigned=${r.assigned.length}&left=${r.left}&cw=${encodeSummary(cw)}`);
+}
+
+/** 右パネル・案件詳細から、この人をシフトに入れる */
+export async function assignAction(jobId: number, staffId: number, fd?: FormData) {
+  await requireAdmin();
+  const ok = repo.assignJob(jobId, staffId);
+  if (ok) await notifyAssigned(await baseUrl(), [{ jobId, staffId }]);
+  const q = `confirm=${ok ? "committed" : "invalid"}`;
+  redirect(backTo(fd, q) ?? `/admin/jobs/${jobId}?${q}`);
 }

@@ -114,6 +114,10 @@ function migrate(d: DatabaseSync) {
     d.exec(`ALTER TABLE jobs ADD COLUMN reminded_eve_at TEXT`);
     d.exec(`ALTER TABLE jobs ADD COLUMN reminded_day_at TEXT`);
   }
+  // シフトを不可で返したときの理由など
+  if (!has("offers", "note")) {
+    d.exec(`ALTER TABLE offers ADD COLUMN note TEXT NOT NULL DEFAULT ''`);
+  }
   // 日報のアンケート回答（JSON）
   if (!has("jobs", "report_answers")) {
     d.exec(`ALTER TABLE jobs ADD COLUMN report_answers TEXT NOT NULL DEFAULT '{}'`);

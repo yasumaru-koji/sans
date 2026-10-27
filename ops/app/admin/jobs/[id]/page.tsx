@@ -81,7 +81,7 @@ export default async function JobDetail({
             <form action={jobStatusAction.bind(null, job.id, "cancel")}><button type="submit" className="danger">中止にする</button></form>
           )}
           {job.status === "cancelled" && (
-            <form action={jobStatusAction.bind(null, job.id, "reopen")}><button type="submit" className="secondary">未案内に戻す</button></form>
+            <form action={jobStatusAction.bind(null, job.id, "reopen")}><button type="submit" className="secondary">未割当に戻す</button></form>
           )}
         </div>
         {job.status !== "completed" && (

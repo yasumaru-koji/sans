@@ -32,7 +32,7 @@ export type MatchStaff = {
   monthCount: number;
   /** 店舗IDごとの過去の担当回数 */
   experience: Map<number, number>;
-  /** 見送った案件ID */
+  /** 見送った・不可で返した案件ID */
   declinedJobIds: Set<number>;
   /** すでに案内した（回答待ち・希望あり）案件ID */
   invitedJobIds: Set<number>;
@@ -51,10 +51,11 @@ export type Candidate = {
 
 /**
  * invite：案内を送る相手を選ぶ。登録した日・エリア・時間帯に合う人だけ。
+ * assign：本部が稼働登録からシフトを入れる。条件は invite と同じだが、案内済みかどうかは問わない。
  * confirm：希望を出した人から確定する人を選ぶ。本人が希望しているので登録内容は問わず、
  *          同じ夜の重複と月の上限だけを見る。
  */
-export type MatchMode = "invite" | "confirm";
+export type MatchMode = "invite" | "confirm" | "assign";
 
 function overlaps(a: { start: number; end: number }, b: { start: number; end: number }) {
   return a.start < b.end + TRAVEL_BUFFER_MIN && b.start < a.end + TRAVEL_BUFFER_MIN;
@@ -67,7 +68,7 @@ export function evaluate(job: MatchJob, s: MatchStaff, mode: MatchMode = "invite
   const av = s.availability;
 
   if (!s.active) blockers.push("稼働中ではない");
-  if (mode === "invite") {
+  if (mode !== "confirm") {
     if (!av) {
       blockers.push("この月の稼働予定が未登録");
     } else {
@@ -78,8 +79,8 @@ export function evaluate(job: MatchJob, s: MatchStaff, mode: MatchMode = "invite
         blockers.push(`時間帯外（登録 ${minutesToLabel(win.from)}〜${minutesToLabel(win.to)}）`);
       }
     }
-    if (s.declinedJobIds.has(job.id)) blockers.push("この案件は見送り済み");
-    if (s.invitedJobIds.has(job.id)) blockers.push("案内済み");
+    if (s.declinedJobIds.has(job.id)) blockers.push("この案件は見送り・不可");
+    if (mode === "invite" && s.invitedJobIds.has(job.id)) blockers.push("案内済み");
   }
   if (av?.maxJobs != null && s.monthCount >= av.maxJobs) {
     blockers.push(`今月の上限 ${av.maxJobs}件に到達`);
@@ -137,6 +138,25 @@ export function planConfirmations(
     if (!top) continue;
     plan.push({ jobId: job.id, staffId: top.staffId });
     const s = pool.find((x) => x.id === top.staffId)!;
+    s.slots.push({ jobId: job.id, date: job.date, start: job.start, end: job.start + job.workMinutes });
+    s.monthCount += 1;
+  }
+  return plan;
+}
+
+/**
+ * 稼働登録からのシフト自動作成。日付・時刻の早い案件から順に、登録した日・エリア・時間帯に合う人のうち
+ * 最上位の人を入れ、入れた分を次の案件の判定に反映する（同じ夜の重複と月の上限を守る）。
+ * その案件を不可で返した人には入れない。
+ */
+export function planAssignments(jobs: MatchJob[], staff: MatchStaff[]): { jobId: number; staffId: number }[] {
+  const ordered = [...jobs].sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start);
+  const plan: { jobId: number; staffId: number }[] = [];
+  for (const job of ordered) {
+    const top = rankCandidates(job, staff, "assign").find((c) => c.eligible);
+    if (!top) continue;
+    plan.push({ jobId: job.id, staffId: top.staffId });
+    const s = staff.find((x) => x.id === top.staffId)!;
     s.slots.push({ jobId: job.id, date: job.date, start: job.start, end: job.start + job.workMinutes });
     s.monthCount += 1;
   }

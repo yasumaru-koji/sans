@@ -28,9 +28,9 @@ export default async function StaffHome({ params }: { params: Promise<{ token: s
       </div>
 
       {(offers > 0 || openCalls > 0) && (
-        <Link href={`/s/${token}/offers`} className="alert-link">
-          <b>案内が{offers + openCalls}件届いています</b>
-          <span>希望する・見送るを選んでください →</span>
+        <Link href={`/s/${token}/shifts`} className="alert-link">
+          <b>追加の募集が{offers + openCalls}件あります</b>
+          <span>入れる日があれば希望してください →</span>
         </Link>
       )}
       {!nextRegistered && (
@@ -62,7 +62,10 @@ export default async function StaffHome({ params }: { params: Promise<{ token: s
 
       {rest.length > 0 && (
         <section className="stack">
-          <h2>この先の予定（{rest.length}件）</h2>
+          <div className="head">
+            <h2>この先のシフト（{rest.length}件）</h2>
+            <Link href={`/s/${token}/shifts`} className="small">不可を送る</Link>
+          </div>
           <ul className="sched">
             {rest.map((j) => (
               <li key={j.id}>

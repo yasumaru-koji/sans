@@ -1,8 +1,8 @@
 // 画面とサーバーアクションから使うデータ操作。SQLはここに集める。
 import crypto from "node:crypto";
 import { all, get, run, tx } from "./db";
-import { TRAVEL_BUFFER_MIN, type JobStatus, type ReportAnswers, type KeyMethod, type OfferStatus, type StaffStatus } from "./constants";
-import { planConfirmations, rankCandidates, type Candidate, type MatchJob, type MatchStaff } from "./matching";
+import { DECLINE_DEADLINE_DAYS, TRAVEL_BUFFER_MIN, type JobStatus, type ReportAnswers, type KeyMethod, type OfferStatus, type StaffStatus } from "./constants";
+import { planAssignments, planConfirmations, rankCandidates, type Candidate, type MatchJob, type MatchStaff } from "./matching";
 import { daysOfMonth, weekdayOf } from "./time";
 
 export type Staff = {
@@ -398,7 +398,7 @@ function loadMatchStaff(month: string): MatchStaff[] {
   );
   const offerRows = all<{ staff_id: number; job_id: number; status: string }>(
     `SELECT o.staff_id, o.job_id, o.status FROM offers o JOIN jobs j ON j.id = o.job_id
-       WHERE j.date LIKE ? AND o.status IN ('pending', 'interested', 'declined')`,
+       WHERE j.date LIKE ? AND o.status IN ('pending', 'interested', 'declined', 'returned')`,
     like,
   );
 
@@ -426,8 +426,8 @@ function loadMatchStaff(month: string): MatchStaff[] {
       slots,
       monthCount: slots.length,
       experience: new Map(expRows.filter((e) => e.staff_id === s.id).map((e) => [e.shop_id, e.n])),
-      declinedJobIds: new Set(mine.filter((o) => o.status === "declined").map((o) => o.job_id)),
-      invitedJobIds: new Set(mine.filter((o) => o.status !== "declined").map((o) => o.job_id)),
+      declinedJobIds: new Set(mine.filter((o) => o.status === "declined" || o.status === "returned").map((o) => o.job_id)),
+      invitedJobIds: new Set(mine.filter((o) => o.status === "pending" || o.status === "interested").map((o) => o.job_id)),
     };
   });
 }
@@ -446,6 +446,13 @@ export function candidatesForJob(jobId: number): Candidate[] {
   const job = getJob(jobId);
   if (!job) return [];
   return rankCandidates(toMatchJob(job), loadMatchStaff(job.date.slice(0, 7)), "invite");
+}
+
+/** この案件に本部が直接入れられる人（稼働登録に合う人。案内済みかは問わない） */
+export function assignableForJob(jobId: number): Candidate[] {
+  const job = getJob(jobId);
+  if (!job) return [];
+  return rankCandidates(toMatchJob(job), loadMatchStaff(job.date.slice(0, 7)), "assign");
 }
 
 export type Applicant = Candidate & { offerId: number; respondedAt: string | null };
@@ -474,7 +481,7 @@ export function createOffers(jobId: number, staffIds: number[]): number[] {
     if (!job || !["open", "offered"].includes(job.status)) return;
     for (const staffId of staffIds) {
       const dup = get(
-        `SELECT 1 FROM offers WHERE job_id = ? AND staff_id = ? AND status IN ('pending', 'interested', 'declined', 'accepted')`,
+        `SELECT 1 FROM offers WHERE job_id = ? AND staff_id = ? AND status IN ('pending', 'interested', 'declined', 'returned', 'accepted')`,
         jobId,
         staffId,
       );
@@ -929,4 +936,84 @@ export function jobsToRemind(date: string, kind: RemindKind): Job[] {
 export function markReminded(jobId: number, kind: RemindKind) {
   const col = kind === "eve" ? "reminded_eve_at" : "reminded_day_at";
   run(`UPDATE jobs SET ${col} = datetime('now') WHERE id = ?`, jobId);
+}
+
+/* ---------- シフトの自動作成と不可の返答 ---------- */
+
+/** 案件にスタッフを入れる（本部が直接入れる）。記録のため確定済みの案内も残す */
+export function assignJob(jobId: number, staffId: number): boolean {
+  return tx(() => {
+    const r = run(
+      `UPDATE jobs SET status = 'committed', staff_id = ?, open_call = 0, committed_at = datetime('now'),
+         reminded_eve_at = NULL, reminded_day_at = NULL
+       WHERE id = ? AND status IN ('open', 'offered')`,
+      staffId,
+      jobId,
+    );
+    if (Number(r.changes) === 0) return false;
+    run(
+      `UPDATE offers SET status = 'closed', responded_at = COALESCE(responded_at, datetime('now'))
+       WHERE job_id = ? AND status IN ('pending', 'interested') AND staff_id != ?`,
+      jobId,
+      staffId,
+    );
+    const mine = get<{ id: number }>(`SELECT id FROM offers WHERE job_id = ? AND staff_id = ? AND status IN ('pending', 'interested')`, jobId, staffId);
+    if (mine) run(`UPDATE offers SET status = 'accepted' WHERE id = ?`, mine.id);
+    else run(`INSERT INTO offers (job_id, staff_id, status, responded_at) VALUES (?, ?, 'accepted', NULL)`, jobId, staffId);
+    return true;
+  });
+}
+
+/** 月の未割当の案件に、稼働登録から最適な人を自動で入れる（全体募集中のものは除く） */
+function assignablePlan(month: string) {
+  const jobs = listJobs(month).filter((j) => j.status === "open" || (j.status === "offered" && !j.open_call && j.interested_offers === 0));
+  return { jobs, plan: planAssignments(jobs.map(toMatchJob), loadMatchStaff(month)) };
+}
+
+/** 自動で組んだら何件入るか（画面の案内用。DBは変えない） */
+export function previewAutoAssign(month: string): number {
+  return assignablePlan(month).plan.length;
+}
+
+export function autoAssignMonth(month: string): { assigned: { jobId: number; staffId: number }[]; left: number } {
+  const { jobs, plan } = assignablePlan(month);
+  const assigned = plan.filter((p) => assignJob(p.jobId, p.staffId));
+  return { assigned, left: jobs.length - assigned.length };
+}
+
+/** 不可で返せる最終日（この日付以降の作業なら返せる） */
+export function declineFromDate(today: string): string {
+  return new Date(Date.parse(`${today}T00:00:00Z`) + DECLINE_DEADLINE_DAYS * 864e5).toISOString().slice(0, 10);
+}
+
+export type DeclineResult = "declined" | "too_late" | "invalid";
+
+/** スタッフが入ったシフトを不可で返す。作業日の7日前まで。案件は未割当に戻る */
+export function declineAssignment(staffId: number, jobId: number, today: string, note = ""): DeclineResult {
+  return tx(() => {
+    const job = get<{ date: string; status: string; staff_id: number | null }>(`SELECT date, status, staff_id FROM jobs WHERE id = ?`, jobId);
+    if (!job || job.status !== "committed" || job.staff_id !== staffId) return "invalid";
+    if (job.date < declineFromDate(today)) return "too_late";
+    run(
+      `UPDATE jobs SET status = 'open', staff_id = NULL, committed_at = NULL, checked_in_at = NULL,
+         reminded_eve_at = NULL, reminded_day_at = NULL WHERE id = ?`,
+      jobId,
+    );
+    const mine = get<{ id: number }>(`SELECT id FROM offers WHERE job_id = ? AND staff_id = ? AND status = 'accepted'`, jobId, staffId);
+    if (mine) run(`UPDATE offers SET status = 'returned', responded_at = datetime('now'), note = ? WHERE id = ?`, note, mine.id);
+    else run(`INSERT INTO offers (job_id, staff_id, status, responded_at, note) VALUES (?, ?, 'returned', datetime('now'), ?)`, jobId, staffId, note);
+    return "declined";
+  });
+}
+
+/** 最近スタッフから不可が返ってきて、まだ埋まっていない案件 */
+export function declinedOpenJobs(fromDate: string): (Job & { declined_by: string; decline_note: string })[] {
+  return all(
+    `SELECT j2.*, st.name AS declined_by, o.note AS decline_note FROM offers o
+       JOIN (${JOB_SELECT}) j2 ON j2.id = o.job_id JOIN staff st ON st.id = o.staff_id
+     WHERE o.status = 'returned' AND j2.status IN ('open', 'offered') AND j2.date >= ?
+       AND o.id = (SELECT MAX(id) FROM offers WHERE job_id = j2.id AND status = 'returned')
+     ORDER BY j2.date, j2.start_time`,
+    fromDate,
+  );
 }

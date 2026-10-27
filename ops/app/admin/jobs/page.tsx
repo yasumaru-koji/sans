@@ -7,14 +7,14 @@ import { chatworkEnabled } from "@/lib/chatwork";
 import { decodeSummary, summaryText } from "@/lib/notify";
 import * as repo from "@/lib/repo";
 import { currentMonth, dateLabel, isMonth, minutesToLabel, monthLabel } from "@/lib/time";
-import { addJobAction, confirmMonthAction, generateJobsAction, inviteMonthAction, openCallMonthAction } from "../actions";
+import { addJobAction, autoAssignAction, confirmMonthAction, generateJobsAction, openCallMonthAction } from "../actions";
 
 export default async function Jobs({
   searchParams,
 }: {
   searchParams: Promise<{
     month?: string; view?: string; shop?: string; status?: string; generated?: string; invited?: string; jobs?: string; nomatch?: string;
-    confirmed?: string; opencall?: string; cw?: string; job?: string; confirm?: string; done?: string;
+    confirmed?: string; opencall?: string; cw?: string; assigned?: string; left?: string; job?: string; confirm?: string; done?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -28,9 +28,9 @@ export default async function Jobs({
   const withApplicants = monthJobs.filter((j) => j.status === "offered" && j.interested_offers > 0).length;
   const activeCount = monthJobs.filter((j) => j.status !== "cancelled").length;
   const filledCount = monthJobs.filter((j) => j.status === "committed" || j.status === "completed").length;
-  const offeredCount = monthJobs.filter((j) => j.status === "offered").length;
-  // いま押すべき手順。案内後も残る未案内は「条件に合う人がいない」案件なので全体募集へ
-  const step = activeCount === 0 ? 1 : openCount > 0 && offeredCount + filledCount === 0 ? 2 : withApplicants > 0 ? 3 : openCount > 0 ? 4 : 5;
+  const assignable = repo.previewAutoAssign(month);
+  // いま押すべき手順。自動で入らなかった未割当は「条件に合う人がいない」案件なので全体募集へ
+  const step = activeCount === 0 ? 1 : assignable > 0 ? 2 : withApplicants > 0 ? 4 : openCount > 0 ? 3 : 5;
   const cw = decodeSummary(sp.cw);
   const view = sp.view === "staff" || sp.view === "list" ? sp.view : sp.shop || sp.status ? "list" : "shop";
   const viewHref = (v: string) => `/admin/jobs?month=${month}${v === "shop" ? "" : `&view=${v}`}`;
@@ -45,6 +45,13 @@ export default async function Jobs({
       </div>
 
       {sp.generated != null && <p className="notice good">{monthLabel(month)}の案件を{sp.generated}件作りました。</p>}
+      {sp.assigned != null && (
+        <p className="notice good">
+          {sp.assigned}件のシフトを入れました。
+          {Number(sp.left) > 0 && ` 登録に合う人がいない案件が${sp.left}件あります（全体募集できます）。`}
+          {cw && summaryText(cw)}
+        </p>
+      )}
       {sp.invited != null && (
         <p className="notice good">
           {sp.jobs}件の案件について、のべ{sp.invited}人に案内しました。
@@ -64,28 +71,28 @@ export default async function Jobs({
             {step === 1 && <button type="submit" disabled={shops.length === 0}>{monthLabel(month)}の案件を作る</button>}
           </form>
         </li>
-        <li className={step > 2 ? "done" : step === 2 ? "now" : ""}>
-          <form action={inviteMonthAction}>
+        <li className={step === 2 ? "now" : filledCount > 0 ? "done" : ""}>
+          <form action={autoAssignAction}>
             <input type="hidden" name="month" value={month} />
-            <span className="flow-t">② 案内する</span>
-            <span className="flow-n num">未案内 {openCount}件</span>
-            {openCount > 0 && <button type="submit" className={step === 2 ? "" : "secondary"}>マッチングして案内</button>}
+            <span className="flow-t">② シフトを自動で組む</span>
+            <span className="flow-n num">確定 {filledCount}/{activeCount}件</span>
+            {assignable > 0 && <button type="submit" className={step === 2 ? "" : "secondary"}>稼働登録から{assignable}件を入れる</button>}
           </form>
         </li>
-        <li className={withApplicants > 0 ? "now" : step > 3 && filledCount > 0 ? "done" : ""}>
-          <form action={confirmMonthAction}>
-            <input type="hidden" name="month" value={month} />
-            <span className="flow-t">③ 確定する</span>
-            <span className="flow-n num">希望あり {withApplicants}件</span>
-            {withApplicants > 0 && <button type="submit">最適な人でまとめて確定</button>}
-          </form>
-        </li>
-        <li className={step === 4 ? "now" : ""}>
+        <li className={step === 3 ? "now" : ""}>
           <form action={openCallMonthAction}>
             <input type="hidden" name="month" value={month} />
-            <span className="flow-t">④ 全体募集</span>
-            <span className="flow-n num">確定 {filledCount}/{activeCount}件</span>
-            {step === 4 && <button type="submit" className="secondary">未案内{openCount}件を全体募集</button>}
+            <span className="flow-t">③ 埋まらない案件を全体募集</span>
+            <span className="flow-n num">未割当 {openCount}件</span>
+            {step === 3 && <button type="submit" className="secondary">{openCount}件を全体募集</button>}
+          </form>
+        </li>
+        <li className={withApplicants > 0 ? "now" : ""}>
+          <form action={confirmMonthAction}>
+            <input type="hidden" name="month" value={month} />
+            <span className="flow-t">④ 希望者から確定</span>
+            <span className="flow-n num">希望あり {withApplicants}件</span>
+            {withApplicants > 0 && <button type="submit">最適な人でまとめて確定</button>}
           </form>
         </li>
       </ol>
@@ -113,7 +120,7 @@ export default async function Jobs({
             <span><i style={{ background: "var(--good-soft)" }} />確定（担当者名）</span>
             <span><i style={{ background: "var(--accent-soft)", borderColor: "var(--accent)" }} />完了</span>
             <span><i style={{ background: "var(--warn-soft)" }} />募集中・全体募集（希望人数）</span>
-            <span><i style={{ background: "var(--bad-soft)" }} />未案内</span>
+            <span><i style={{ background: "var(--bad-soft)" }} />未割当</span>
             <span>休＝定休日</span>
           </div>
           <ShopBoard month={month} shops={shops} jobs={monthJobs} jobHref={jobHref} selected={selected} />

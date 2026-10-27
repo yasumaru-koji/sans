@@ -1,6 +1,6 @@
 // スタッフへのチャットワーク通知の文面と送信
 import { sendChatwork, type SendResult } from "./chatwork";
-import { KEY_METHODS } from "./constants";
+import { DECLINE_DEADLINE_DAYS, KEY_METHODS } from "./constants";
 import * as repo from "./repo";
 import { dateLabel, minutesToLabel, yen } from "./time";
 
@@ -149,4 +149,42 @@ export async function notifyAdminProgress(jobId: number, kind: "start" | "end"):
   if (!room || !j) return;
   const what = kind === "start" ? "清掃を開始しました" : "清掃を終了し、日報を提出しました";
   await sendChatwork(room, `${dateLabel(j.date)} ${j.shop_name}：${j.staff_name}さんが${what}。`);
+}
+
+/** 本部が入れたシフトを本人にまとめて知らせる。不可の返し方と期限も添える */
+export async function notifyAssigned(base: string, items: { jobId: number; staffId: number }[]): Promise<NotifySummary> {
+  const byStaff = new Map<number, number[]>();
+  for (const i of items) byStaff.set(i.staffId, [...(byStaff.get(i.staffId) ?? []), i.jobId]);
+  const results: SendResult[] = [];
+  for (const [staffId, jobIds] of byStaff) {
+    const staff = repo.getStaff(staffId);
+    if (!staff) continue;
+    const lines = jobIds
+      .map((id) => repo.getJob(id))
+      .filter((j): j is repo.Job => !!j)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.start_time - b.start_time)
+      .map((j) => `・${dateLabel(j.date)} ${minutesToLabel(j.start_time)}〜 ${j.shop_name}（${j.area}）`);
+    results.push(
+      await sendChatwork(
+        staff.chatwork_room_id,
+        [
+          `[info][title]${staff.name}さん シフトが入りました（${lines.length}件）[/title]${lines.join("\n")}[/info]`,
+          `ご登録いただいた日時からシフトを組みました。都合が悪い日は、作業日の${DECLINE_DEADLINE_DAYS}日前までにマイページの「シフト」でチェックして「不可」を送ってください。それ以降は本部へ直接ご連絡ください。`,
+          `${staffPageUrl(base, staff)}/shifts`,
+        ].join("\n"),
+      ),
+    );
+  }
+  return summarize(results);
+}
+
+/** スタッフから不可が返ってきたことを本部のチャットワークに知らせる（CHATWORK_ADMIN_ROOM_ID がある場合だけ） */
+export async function notifyAdminDeclined(staff: repo.Staff, jobIds: number[], note: string): Promise<void> {
+  const room = process.env.CHATWORK_ADMIN_ROOM_ID;
+  if (!room || jobIds.length === 0) return;
+  const lines = jobIds
+    .map((id) => repo.getJob(id))
+    .filter((j): j is repo.Job => !!j)
+    .map((j) => `・${dateLabel(j.date)} ${j.shop_name}`);
+  await sendChatwork(room, [`${staff.name}さんから不可の連絡がありました（${lines.length}件）。代わりの人を入れてください。`, ...lines, note && `理由：${note}`].filter(Boolean).join("\n"));
 }
