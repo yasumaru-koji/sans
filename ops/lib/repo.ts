@@ -1,7 +1,7 @@
 // 画面とサーバーアクションから使うデータ操作。SQLはここに集める。
 import crypto from "node:crypto";
 import { all, get, run, tx } from "./db";
-import { TRAVEL_BUFFER_MIN, type JobStatus, type KeyMethod, type OfferStatus, type StaffStatus } from "./constants";
+import { TRAVEL_BUFFER_MIN, type JobStatus, type ReportAnswers, type KeyMethod, type OfferStatus, type StaffStatus } from "./constants";
 import { planConfirmations, rankCandidates, type Candidate, type MatchJob, type MatchStaff } from "./matching";
 import { daysOfMonth, weekdayOf } from "./time";
 
@@ -73,6 +73,10 @@ export type Job = {
   report_note: string;
   /** 完了報告の写真のファイル名（JSON配列の文字列） */
   report_photos: string;
+  /** 日報のアンケート回答（JSONの文字列） */
+  report_answers: string;
+  reminded_eve_at: string | null;
+  reminded_day_at: string | null;
   pending_offers: number;
   interested_offers: number;
 };
@@ -841,17 +845,33 @@ export function checkIn(jobId: number, staffId: number): boolean {
 }
 
 /** スタッフの完了報告。報告した時点で完了にし、報酬に集計する */
-export function reportComplete(jobId: number, staffId: number, note: string, photos: string[]): boolean {
+export function reportComplete(
+  jobId: number,
+  staffId: number,
+  note: string,
+  photos: string[],
+  answers: ReportAnswers = {},
+): boolean {
   const r = run(
     `UPDATE jobs SET status = 'completed', completed_at = datetime('now'),
-       checked_in_at = COALESCE(checked_in_at, datetime('now')), report_note = ?, report_photos = ?
+       checked_in_at = COALESCE(checked_in_at, datetime('now')), report_note = ?, report_photos = ?, report_answers = ?
      WHERE id = ? AND staff_id = ? AND status = 'committed'`,
     note,
     JSON.stringify(photos),
+    JSON.stringify(answers),
     jobId,
     staffId,
   );
   return Number(r.changes) > 0;
+}
+
+export function reportAnswers(job: Pick<Job, "report_answers">): ReportAnswers {
+  try {
+    const v = JSON.parse(job.report_answers ?? "{}");
+    return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  } catch {
+    return {};
+  }
 }
 
 export function reportPhotos(job: Pick<Job, "report_photos">): string[] {
@@ -894,4 +914,19 @@ export function shopRecentJobs(shopId: number, beforeDate: string, limit = 10): 
     beforeDate,
     limit,
   );
+}
+
+/* ---------- リマインド ---------- */
+
+export type RemindKind = "eve" | "day";
+
+/** その日の確定案件のうち、まだリマインドを送っていないもの */
+export function jobsToRemind(date: string, kind: RemindKind): Job[] {
+  const col = kind === "eve" ? "reminded_eve_at" : "reminded_day_at";
+  return all(`${JOB_SELECT} WHERE j.date = ? AND j.status = 'committed' AND j.${col} IS NULL ORDER BY j.start_time`, date);
+}
+
+export function markReminded(jobId: number, kind: RemindKind) {
+  const col = kind === "eve" ? "reminded_eve_at" : "reminded_day_at";
+  run(`UPDATE jobs SET ${col} = datetime('now') WHERE id = ?`, jobId);
 }

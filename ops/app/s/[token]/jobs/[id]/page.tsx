@@ -2,16 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pay, When, mapUrl } from "@/components/StaffCards";
 import { PhotoInput } from "@/components/PhotoInput";
-import { CLOSING_CHECKS, KEY_METHODS } from "@/lib/constants";
+import { CLOSING_CHECKS, KEY_METHODS, REPORT_QUESTIONS } from "@/lib/constants";
 import { MAX_PHOTOS } from "@/lib/photos";
 import * as repo from "@/lib/repo";
 import { todayJst } from "@/lib/time";
 import { checkInAction, reportAction } from "../../actions";
 
 const RESULT: Record<string, { text: string; tone: string }> = {
-  in: { text: "入店を記録しました。作業が終わったら完了報告をしてください。", tone: "good" },
-  done: { text: "完了報告を受け付けました。おつかれさまでした。", tone: "good" },
+  in: { text: "清掃開始を本部に報告しました。終わったら下の日報で終了を報告してください。", tone: "good" },
+  done: { text: "清掃終了と日報を受け付けました。おつかれさまでした。", tone: "good" },
   unchecked: { text: "チェック項目をすべて確認してから報告してください。", tone: "bad" },
+  unanswered: { text: "アンケートにすべて答えてから報告してください。", tone: "bad" },
   invalid: { text: "報告できませんでした。本部に連絡してください。", tone: "bad" },
 };
 
@@ -67,15 +68,29 @@ export default async function StaffJob({
       {workday && !job.checked_in_at && (
         <form action={checkInAction.bind(null, token, job.id)} className="offer">
           <h2>お店に着いたら</h2>
-          <button type="submit" className="big">入店した</button>
+          <p className="small muted">鍵を開けて店内に入ったら押してください。本部に清掃開始が届きます。</p>
+          <button type="submit" className="big">清掃を開始する</button>
         </form>
       )}
 
       {workday && job.checked_in_at && (
         <form action={reportAction.bind(null, token, job.id)} className="offer report">
-          <h2>完了報告</h2>
+          <h2>清掃終了の報告（日報）</h2>
+          {REPORT_QUESTIONS.map((q) => (
+            <fieldset key={q.key} className="question">
+              <legend>{q.label}{q.multi && <span className="small muted">（いくつでも）</span>}</legend>
+              <div className="opts">
+                {q.options.map((o) => (
+                  <label key={o} className="opt">
+                    <input type={q.multi ? "checkbox" : "radio"} name={`q_${q.key}`} value={o} required={!q.multi} />
+                    <span>{o}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ))}
           <fieldset className="checklist">
-            <legend className="small muted">終わった項目にチェックしてください</legend>
+            <legend>作業チェック<span className="small muted">（すべて確認してください）</span></legend>
             {CLOSING_CHECKS.map((c) => (
               <label key={c} className="inline"><input type="checkbox" name="check" value={c} required />{c}</label>
             ))}
@@ -87,13 +102,13 @@ export default async function StaffJob({
           <label>気づいたこと・お店への連絡（任意）
             <textarea name="note" placeholder="例：洗剤が残りわずかでした" />
           </label>
-          <button type="submit" className="big">作業完了を報告する</button>
+          <button type="submit" className="big">清掃終了を報告する</button>
         </form>
       )}
 
       {job.status === "completed" && (
         <section className="offer">
-          <h2>完了報告済み</h2>
+          <h2>日報を提出済み</h2>
           <p className="small muted">報告ありがとうございました。この作業の報酬は今月分に集計されます。</p>
         </section>
       )}

@@ -119,3 +119,34 @@ export function decodeSummary(v: string | undefined): NotifySummary | null {
   if (!m) return null;
   return { sent: Number(m[1]), noRoom: Number(m[2]), failed: Number(m[3]), noToken: m[4] === "1" };
 }
+
+/**
+ * 担当スタッフに作業のリマインドを送る。前日（eve）は明日の作業、当日（day）は今夜の作業。
+ * 送れた案件だけ送信済みにするので、ルームIDを直してから送り直せる
+ */
+export async function remindStaff(base: string, date: string, kind: repo.RemindKind): Promise<NotifySummary> {
+  const results: SendResult[] = [];
+  for (const j of repo.jobsToRemind(date, kind)) {
+    const staff = j.staff_id != null ? repo.getStaff(j.staff_id) : undefined;
+    if (!staff) continue;
+    const title = kind === "eve" ? "明日の締め作業のお知らせ" : "今夜の締め作業のお知らせ";
+    const body = [
+      `[info][title]${title}[/title]${dateLabel(j.date)} ${minutesToLabel(j.start_time)}〜 ${j.shop_name}\n${j.address}\n鍵：${KEY_METHODS[j.key_method]}[/info]`,
+      "お店に着いたら作業画面の「清掃を開始する」を、終わったら日報で終了を報告してください。行けなくなった場合はすぐに本部へ連絡してください。",
+      `${base}/s/${staff.token}/jobs/${j.id}`,
+    ].join("\n");
+    const r = await sendChatwork(staff.chatwork_room_id, body);
+    if (r === "sent") repo.markReminded(j.id, kind);
+    results.push(r);
+  }
+  return summarize(results);
+}
+
+/** 清掃開始・終了を本部のチャットワークに知らせる（CHATWORK_ADMIN_ROOM_ID がある場合だけ） */
+export async function notifyAdminProgress(jobId: number, kind: "start" | "end"): Promise<void> {
+  const room = process.env.CHATWORK_ADMIN_ROOM_ID;
+  const j = repo.getJob(jobId);
+  if (!room || !j) return;
+  const what = kind === "start" ? "清掃を開始しました" : "清掃を終了し、日報を提出しました";
+  await sendChatwork(room, `${dateLabel(j.date)} ${j.shop_name}：${j.staff_name}さんが${what}。`);
+}

@@ -61,3 +61,11 @@ export const CLOSING_CHECKS = [
   "消灯・エアコン停止",
   "施錠・警備セット・鍵の返却",
 ] as const;
+
+// 日報のアンケート（仮）。選ぶだけで答えられる質問にする
+export const REPORT_QUESTIONS = [
+  { key: "condition", label: "清掃前の店内の状態", multi: false, options: ["きれい", "ふつう", "汚れが多い"] },
+  { key: "supplies", label: "補充が必要な備品", multi: true, options: ["なし", "シャンプー・トリートメント", "洗剤", "タオル", "ゴミ袋", "ペーパー類"] },
+  { key: "trouble", label: "設備の不具合・破損", multi: false, options: ["なし", "あり（連絡欄に記入）"] },
+] as const;
+export type ReportAnswers = Record<string, string[]>;

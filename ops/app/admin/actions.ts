@@ -12,9 +12,10 @@ import {
   notifyNotChosen,
   notifyOpenCall,
   notifyPendingOffers,
+  remindStaff,
 } from "@/lib/notify";
 import * as repo from "@/lib/repo";
-import { isMonth } from "@/lib/time";
+import { isMonth, todayJst } from "@/lib/time";
 import { baseUrl } from "@/lib/url";
 
 function staffInput(fd: FormData): repo.StaffInput {
@@ -228,4 +229,13 @@ export async function completeFromHomeAction(jobId: number) {
   await requireAdmin();
   repo.completeJob(jobId);
   redirect("/admin");
+}
+
+/** ホームから前日・当日のリマインドを手動で送る */
+export async function remindAction(kind: "eve" | "day") {
+  await requireAdmin();
+  const today = todayJst();
+  const date = kind === "eve" ? new Date(Date.parse(`${today}T00:00:00Z`) + 864e5).toISOString().slice(0, 10) : today;
+  const cw = await remindStaff(await baseUrl(), date, kind);
+  redirect(`/admin?remind=${kind}&cw=${encodeSummary(cw)}`);
 }

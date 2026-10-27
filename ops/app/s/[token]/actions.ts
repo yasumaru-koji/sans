@@ -1,8 +1,9 @@
 "use server";
 import { redirect } from "next/navigation";
-import { CLOSING_CHECKS } from "@/lib/constants";
+import { CLOSING_CHECKS, REPORT_QUESTIONS, type ReportAnswers } from "@/lib/constants";
 import { parseAvailability } from "@/lib/form";
 import { savePhotos } from "@/lib/photos";
+import { notifyAdminProgress } from "@/lib/notify";
 import * as repo from "@/lib/repo";
 
 function staffOrThrow(token: string) {
@@ -33,7 +34,7 @@ export async function saveAvailabilityAction(token: string, fd: FormData) {
 
 export async function checkInAction(token: string, jobId: number) {
   const s = staffOrThrow(token);
-  repo.checkIn(jobId, s.id);
+  if (repo.checkIn(jobId, s.id)) await notifyAdminProgress(jobId, "start");
   redirect(`/s/${token}/jobs/${jobId}?r=in`);
 }
 
@@ -44,7 +45,14 @@ export async function reportAction(token: string, jobId: number, fd: FormData) {
   if (checked < CLOSING_CHECKS.length) redirect(`/s/${token}/jobs/${jobId}?r=unchecked`);
   const photos = await savePhotos(fd.getAll("photos").filter((f): f is File => f instanceof File));
   const note = String(fd.get("note") ?? "").slice(0, 1000);
-  const ok = repo.reportComplete(jobId, s.id, note, photos);
+  const answers: ReportAnswers = {};
+  for (const q of REPORT_QUESTIONS) {
+    const picked = fd.getAll(`q_${q.key}`).map(String).filter((v) => (q.options as readonly string[]).includes(v));
+    if (picked.length === 0) redirect(`/s/${token}/jobs/${jobId}?r=unanswered`);
+    answers[q.key] = q.multi ? picked : picked.slice(0, 1);
+  }
+  const ok = repo.reportComplete(jobId, s.id, note, photos, answers);
+  if (ok) await notifyAdminProgress(jobId, "end");
   redirect(`/s/${token}/jobs/${jobId}?r=${ok ? "done" : "invalid"}`);
 }
 

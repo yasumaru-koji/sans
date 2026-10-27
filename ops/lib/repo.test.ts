@@ -21,6 +21,7 @@ import {
   checkIn,
   reportComplete,
   reportPhotos,
+  reportAnswers,
   staffPayMonths,
   respondOffer,
   saveAvailability,
@@ -154,11 +155,12 @@ describe("案内から確定まで", () => {
     expect(checkIn(job.id, job.staff_id!)).toBe(true);
     expect(getJob(job.id)!.checked_in_at).not.toBeNull();
     expect(reportComplete(job.id, other, "", [])).toBe(false);
-    expect(reportComplete(job.id, job.staff_id!, "洗剤が残りわずか", ["abc.jpg"])).toBe(true);
+    expect(reportComplete(job.id, job.staff_id!, "洗剤が残りわずか", ["abc.jpg"], { condition: ["ふつう"] })).toBe(true);
     const done = getJob(job.id)!;
     expect(done.status).toBe("completed");
     expect(done.report_note).toBe("洗剤が残りわずか");
     expect(reportPhotos(done)).toEqual(["abc.jpg"]);
+    expect(reportAnswers(done)).toEqual({ condition: ["ふつう"] });
     // 2回目の報告は受け付けない
     expect(reportComplete(job.id, job.staff_id!, "", [])).toBe(false);
     expect(staffPayMonths(job.staff_id!, [month])[0]).toMatchObject({ month, done: expect.any(Number) });

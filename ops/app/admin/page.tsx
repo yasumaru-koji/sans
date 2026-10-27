@@ -1,16 +1,26 @@
 import Link from "next/link";
 import { JobPill } from "@/components/ui";
+import { decodeSummary, summaryText } from "@/lib/notify";
 import * as repo from "@/lib/repo";
 import { addMonths, currentMonth, dateLabel, minutesToLabel, monthLabel, todayJst, yen } from "@/lib/time";
-import { completeFromHomeAction } from "./actions";
+import { completeFromHomeAction, remindAction } from "./actions";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ remind?: string; cw?: string }> }) {
+  const sp = await searchParams;
+  const cw = decodeSummary(sp.cw);
   const today = todayJst();
   const month = currentMonth();
   const next = addMonths(month, 1);
   const in3days = new Date(Date.parse(`${today}T00:00:00Z`) + 3 * 864e5).toISOString().slice(0, 10);
 
   const tonight = repo.jobsOnDate(today);
+  const tomorrow = new Date(Date.parse(`${today}T00:00:00Z`) + 864e5).toISOString().slice(0, 10);
+  const eveLeft = repo.jobsToRemind(tomorrow, "eve").length;
+  const dayLeft = repo.jobsToRemind(today, "day").length;
+  // 開始時刻を15分過ぎても清掃開始の報告がない作業（日付をまたぐ前の時間帯で判定）
+  const nowJst = new Date(Date.now() + 9 * 3600e3);
+  const nowMin = nowJst.getUTCHours() * 60 + nowJst.getUTCMinutes();
+  const isLate = (j: repo.Job) => j.status === "committed" && !j.checked_in_at && nowMin > j.start_time + 15;
   const tonightUnfilled = tonight.filter((j) => j.status === "open" || j.status === "offered").length;
   const decisions = repo.jobsAwaitingDecision(today);
   const soonUnfilled = repo.unfilledJobs(today, in3days).filter((j) => j.date !== today && j.interested_offers === 0);
@@ -47,7 +57,7 @@ export default async function Home() {
             {tonight.map((j) => {
               const unfilled = j.status === "open" || j.status === "offered";
               return (
-                <li key={j.id} className={unfilled ? "alert" : undefined}>
+                <li key={j.id} className={unfilled || isLate(j) ? "alert" : undefined}>
                   <span className="num time">{minutesToLabel(j.start_time)}</span>
                   <span className="who">
                     <b>{j.shop_name}</b>
@@ -57,13 +67,31 @@ export default async function Home() {
                     {j.staff_name ?? <span className="muted">担当未定</span>}
                     {unfilled && j.interested_offers > 0 && <span className="small warn-text">希望{j.interested_offers}人</span>}
                   </span>
-                  {j.status === "committed" && j.checked_in_at ? <span className="pill offered">入店済</span> : <JobPill status={j.status} />}
+                  {isLate(j) ? <span className="pill open">未開始</span>
+                    : j.status === "committed" && j.checked_in_at ? <span className="pill offered">清掃中</span>
+                    : <JobPill status={j.status} />}
                   <Link className={unfilled ? "btn" : "btn secondary"} href={`/admin/jobs/${j.id}`}>{unfilled ? "担当を決める" : "詳細"}</Link>
                 </li>
               );
             })}
           </ul>
         )}
+      </section>
+
+      <section className="card">
+        <div className="head">
+          <h2>スタッフへのリマインド</h2>
+          <span className="small muted">定時の自動送信は README の「リマインド」を参照</span>
+        </div>
+        {sp.remind && cw && <p className="notice">{sp.remind === "eve" ? "前日" : "当日"}リマインド：{summaryText(cw)}</p>}
+        <div className="row">
+          <form action={remindAction.bind(null, "eve")}>
+            <button type="submit" className={eveLeft ? "" : "secondary"} disabled={eveLeft === 0}>明日の担当者に前日リマインド（未送信{eveLeft}件）</button>
+          </form>
+          <form action={remindAction.bind(null, "day")}>
+            <button type="submit" className="secondary" disabled={dayLeft === 0}>今夜の担当者に当日リマインド（未送信{dayLeft}件）</button>
+          </form>
+        </div>
       </section>
 
       <section className="card">

@@ -1,4 +1,6 @@
-// 本部向け：スタッフの入店・完了報告の表示
+// スタッフの清掃開始・終了と日報の表示（本部・店舗で共通）
+import { Fragment } from "react";
+import { REPORT_QUESTIONS } from "@/lib/constants";
 import * as repo from "@/lib/repo";
 
 /** DBの時刻（UTC）を日本時間の「10/27 23:12」に */
@@ -10,11 +12,15 @@ function jst(utc: string): string {
 export function JobReport({ job }: { job: repo.Job }) {
   if (!job.checked_in_at && job.status !== "completed") return null;
   const photos = repo.reportPhotos(job);
+  const answers = repo.reportAnswers(job);
   return (
     <div className="report-view">
       <dl className="facts">
-        {job.checked_in_at && (<><dt>入店</dt><dd className="num">{jst(job.checked_in_at)}</dd></>)}
-        {job.completed_at && (<><dt>完了</dt><dd className="num">{jst(job.completed_at)}</dd></>)}
+        {job.checked_in_at && (<><dt>開始</dt><dd className="num">{jst(job.checked_in_at)}</dd></>)}
+        {job.completed_at && (<><dt>終了</dt><dd className="num">{jst(job.completed_at)}</dd></>)}
+        {REPORT_QUESTIONS.filter((q) => answers[q.key]?.length).map((q) => (
+          <Fragment key={q.key}><dt>{q.label}</dt><dd>{answers[q.key].join("、")}</dd></Fragment>
+        ))}
         {job.report_note && (<><dt>連絡</dt><dd style={{ whiteSpace: "pre-wrap" }}>{job.report_note}</dd></>)}
       </dl>
       {photos.length > 0 && (

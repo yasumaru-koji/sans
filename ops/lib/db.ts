@@ -109,6 +109,15 @@ function migrate(d: DatabaseSync) {
     d.exec(`ALTER TABLE jobs ADD COLUMN report_note TEXT NOT NULL DEFAULT ''`);
     d.exec(`ALTER TABLE jobs ADD COLUMN report_photos TEXT NOT NULL DEFAULT '[]'`);
   }
+  // スタッフへのリマインドを送った時刻（前日・当日）
+  if (!has("jobs", "reminded_eve_at")) {
+    d.exec(`ALTER TABLE jobs ADD COLUMN reminded_eve_at TEXT`);
+    d.exec(`ALTER TABLE jobs ADD COLUMN reminded_day_at TEXT`);
+  }
+  // 日報のアンケート回答（JSON）
+  if (!has("jobs", "report_answers")) {
+    d.exec(`ALTER TABLE jobs ADD COLUMN report_answers TEXT NOT NULL DEFAULT '{}'`);
+  }
 }
 
 declare global {
