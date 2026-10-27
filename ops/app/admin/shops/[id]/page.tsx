@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { CopyText } from "@/components/CopyText";
+import { baseUrl } from "@/lib/url";
+import { ownerPageUrl } from "@/lib/notify";
 import { notFound } from "next/navigation";
 import { ShopFields } from "@/components/ShopFields";
 import { PageTabs } from "@/components/Tabs";
@@ -27,6 +30,7 @@ export default async function ShopDetail({
   const upcoming = monthJobs.filter((j) => j.date >= today).slice(0, 7);
   const team = repo.shopTeam(shop.id);
   const recent = repo.shopRecentJobs(shop.id, today);
+  const ownerUrl = ownerPageUrl(await baseUrl(), shop);
 
   return (
     <main className="page">
@@ -78,6 +82,16 @@ export default async function ShopDetail({
               <p className="small muted">マッチングでは、この店の経験が多い人ほどおすすめ順で上に出ます。</p>
             </section>
           </div>
+          <section className="card">
+            <h2>サロンオーナーへの報告</h2>
+            <p className="small">
+              {shop.owner_chatwork_room_id
+                ? `清掃の開始・終了と日報を、オーナーのチャットワーク（ルームID ${shop.owner_chatwork_room_id}）に自動で送ります。`
+                : <>オーナーのチャットワークのルームIDが未登録のため、開始・終了の通知は送っていません。<Link href={`/admin/shops/${shop.id}?tab=info`}>登録情報</Link>から登録してください。</>}
+            </p>
+            <p className="small muted">日報と写真はこのURLでオーナーが見られます（ログイン不要。URLを知っている人だけが開けます）。</p>
+            <CopyText text={ownerUrl} label="URLをコピー" />
+          </section>
           <section className="card">
             <h2>最近の作業</h2>
             {recent.length === 0 ? <p className="muted">まだありません。</p> : (

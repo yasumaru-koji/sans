@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { CLOSING_CHECKS, REPORT_QUESTIONS, type ReportAnswers } from "@/lib/constants";
 import { parseAvailability } from "@/lib/form";
 import { savePhotos } from "@/lib/photos";
-import { notifyAdminDeclined, notifyAdminProgress } from "@/lib/notify";
+import { notifyAdminDeclined, notifyAdminProgress, notifyShopOwner } from "@/lib/notify";
+import { baseUrl } from "@/lib/url";
 import { todayJst } from "@/lib/time";
 import * as repo from "@/lib/repo";
 
@@ -35,7 +36,10 @@ export async function saveAvailabilityAction(token: string, fd: FormData) {
 
 export async function checkInAction(token: string, jobId: number) {
   const s = staffOrThrow(token);
-  if (repo.checkIn(jobId, s.id)) await notifyAdminProgress(jobId, "start");
+  if (repo.checkIn(jobId, s.id)) {
+    await notifyAdminProgress(jobId, "start");
+    await notifyShopOwner(await baseUrl(), jobId, "start");
+  }
   redirect(`/s/${token}/jobs/${jobId}?r=in`);
 }
 
@@ -53,7 +57,10 @@ export async function reportAction(token: string, jobId: number, fd: FormData) {
     answers[q.key] = q.multi ? picked : picked.slice(0, 1);
   }
   const ok = repo.reportComplete(jobId, s.id, note, photos, answers);
-  if (ok) await notifyAdminProgress(jobId, "end");
+  if (ok) {
+    await notifyAdminProgress(jobId, "end");
+    await notifyShopOwner(await baseUrl(), jobId, "end");
+  }
   redirect(`/s/${token}/jobs/${jobId}?r=${ok ? "done" : "invalid"}`);
 }
 

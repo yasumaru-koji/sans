@@ -4,12 +4,13 @@ import { REPORT_QUESTIONS } from "@/lib/constants";
 import * as repo from "@/lib/repo";
 
 /** DBの時刻（UTC）を日本時間の「10/27 23:12」に */
-function jst(utc: string): string {
+export function jst(utc: string): string {
   const d = new Date(Date.parse(`${utc.replace(" ", "T")}Z`) + 9 * 3600e3);
   return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${d.getUTCHours()}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
 }
 
-export function JobReport({ job }: { job: repo.Job }) {
+/** photoBase は写真のURLの起点。本部は /photos、オーナー用ページは /r/<token>/photos。owner は本部向けの注記を出さない */
+export function JobReport({ job, photoBase = "/photos", owner = false }: { job: repo.Job; photoBase?: string; owner?: boolean }) {
   if (!job.checked_in_at && job.status !== "completed") return null;
   const photos = repo.reportPhotos(job);
   const answers = repo.reportAnswers(job);
@@ -25,10 +26,10 @@ export function JobReport({ job }: { job: repo.Job }) {
       </dl>
       {photos.length > 0 && (
         <div className="thumbs">
-          {photos.map((p) => <a key={p} href={`/photos/${p}`} target="_blank" rel="noopener noreferrer"><img src={`/photos/${p}`} alt="完了報告の写真" /></a>)}
+          {photos.map((p) => <a key={p} href={`${photoBase}/${p}`} target="_blank" rel="noopener noreferrer"><img src={`${photoBase}/${p}`} alt="完了報告の写真" /></a>)}
         </div>
       )}
-      {job.status === "completed" && photos.length === 0 && !job.report_note && job.checked_in_at == null && (
+      {!owner && job.status === "completed" && photos.length === 0 && !job.report_note && job.checked_in_at == null && (
         <p className="small muted">本部で完了にしました（スタッフの報告なし）。</p>
       )}
     </div>

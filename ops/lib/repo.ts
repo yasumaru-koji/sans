@@ -48,6 +48,10 @@ export type Shop = {
   pay_per_job: number;
   note: string;
   active: number;
+  /** サロンオーナーのチャットワークのルームID（清掃開始・終了と日報を送る） */
+  owner_chatwork_room_id: string;
+  /** オーナー用ページ（ログインなし）のURLに使う合言葉 */
+  token: string;
 };
 
 export type Job = {
@@ -216,7 +220,7 @@ export function saveAvailability(staffId: number, a: Omit<Availability, "updated
 type ShopRow = Omit<Shop, "closed_weekdays"> & { closed_weekdays: string };
 const toShop = (r: ShopRow): Shop => ({ ...r, closed_weekdays: JSON.parse(r.closed_weekdays) });
 
-export type ShopInput = Omit<Shop, "id">;
+export type ShopInput = Omit<Shop, "id" | "token" | "owner_chatwork_room_id"> & { owner_chatwork_room_id?: string };
 
 export function listShops(): Shop[] {
   return all<ShopRow>(`SELECT * FROM shops ORDER BY active DESC, area, name`).map(toShop);
@@ -230,9 +234,10 @@ export function getShop(id: number): Shop | undefined {
 export function createShop(s: ShopInput): number {
   const r = run(
     `INSERT INTO shops (name, area, address, start_time, work_minutes, closed_weekdays, key_method,
-       fee_per_job, pay_per_job, note, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       fee_per_job, pay_per_job, note, active, owner_chatwork_room_id, token) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     s.name, s.area, s.address, s.start_time, s.work_minutes, JSON.stringify(s.closed_weekdays),
-    s.key_method, s.fee_per_job, s.pay_per_job, s.note, s.active,
+    s.key_method, s.fee_per_job, s.pay_per_job, s.note, s.active, s.owner_chatwork_room_id ?? "",
+    crypto.randomBytes(18).toString("base64url"),
   );
   return Number(r.lastInsertRowid);
 }
@@ -240,9 +245,9 @@ export function createShop(s: ShopInput): number {
 export function updateShop(id: number, s: ShopInput) {
   run(
     `UPDATE shops SET name = ?, area = ?, address = ?, start_time = ?, work_minutes = ?, closed_weekdays = ?,
-       key_method = ?, fee_per_job = ?, pay_per_job = ?, note = ?, active = ? WHERE id = ?`,
+       key_method = ?, fee_per_job = ?, pay_per_job = ?, note = ?, active = ?, owner_chatwork_room_id = ? WHERE id = ?`,
     s.name, s.area, s.address, s.start_time, s.work_minutes, JSON.stringify(s.closed_weekdays),
-    s.key_method, s.fee_per_job, s.pay_per_job, s.note, s.active, id,
+    s.key_method, s.fee_per_job, s.pay_per_job, s.note, s.active, s.owner_chatwork_room_id ?? "", id,
   );
 }
 
@@ -1015,5 +1020,30 @@ export function declinedOpenJobs(fromDate: string): (Job & { declined_by: string
        AND o.id = (SELECT MAX(id) FROM offers WHERE job_id = j2.id AND status = 'returned')
      ORDER BY j2.date, j2.start_time`,
     fromDate,
+  );
+}
+
+/* ---------- サロンオーナー用ページ ---------- */
+
+export function getShopByToken(token: string): Shop | undefined {
+  const r = get<ShopRow>(`SELECT * FROM shops WHERE token = ?`, token);
+  return r && toShop(r);
+}
+
+/** オーナー用ページの日報一覧（開始・終了の報告があるもの、新しい順） */
+export function shopReports(shopId: number, limit = 40): Job[] {
+  return all(
+    `${JOB_SELECT} WHERE j.shop_id = ? AND (j.checked_in_at IS NOT NULL OR j.status = 'completed')
+     ORDER BY j.date DESC, j.start_time DESC LIMIT ?`,
+    shopId,
+    limit,
+  );
+}
+
+/** その店の日報に付いた写真か（オーナー用ページから写真を見せるときの確認） */
+export function shopHasPhoto(shopId: number, name: string): boolean {
+  if (!/^[0-9a-f]{32}\.[a-z]+$/.test(name)) return false;
+  return all<{ report_photos: string }>(`SELECT report_photos FROM jobs WHERE shop_id = ? AND report_photos LIKE ?`, shopId, `%${name}%`).some((r) =>
+    reportPhotos(r).includes(name),
   );
 }

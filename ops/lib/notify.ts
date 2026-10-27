@@ -1,6 +1,6 @@
 // スタッフへのチャットワーク通知の文面と送信
 import { sendChatwork, type SendResult } from "./chatwork";
-import { DECLINE_DEADLINE_DAYS, KEY_METHODS } from "./constants";
+import { DECLINE_DEADLINE_DAYS, KEY_METHODS, REPORT_QUESTIONS } from "./constants";
 import * as repo from "./repo";
 import { dateLabel, minutesToLabel, yen } from "./time";
 
@@ -187,4 +187,31 @@ export async function notifyAdminDeclined(staff: repo.Staff, jobIds: number[], n
     .filter((j): j is repo.Job => !!j)
     .map((j) => `・${dateLabel(j.date)} ${j.shop_name}`);
   await sendChatwork(room, [`${staff.name}さんから不可の連絡がありました（${lines.length}件）。代わりの人を入れてください。`, ...lines, note && `理由：${note}`].filter(Boolean).join("\n"));
+}
+
+export function ownerPageUrl(base: string, shop: Pick<repo.Shop, "token">): string {
+  return `${base}/r/${shop.token}`;
+}
+
+/** サロンオーナーへの開始・終了の文面。終了は日報（アンケートの答え・連絡・写真の枚数）つき */
+export function ownerMessage(base: string, shop: repo.Shop, j: repo.Job, kind: "start" | "end"): string {
+  const head = `${dateLabel(j.date)} ${shop.name}`;
+  if (kind === "start") return `[info][title]${head} 清掃を開始しました[/title]担当：${j.staff_name}[/info]`;
+  const answers = repo.reportAnswers(j);
+  const lines = REPORT_QUESTIONS.filter((q) => answers[q.key]?.length).map((q) => `${q.label}：${answers[q.key].join("、")}`);
+  if (j.report_note) lines.push(`連絡：${j.report_note}`);
+  const photos = repo.reportPhotos(j).length;
+  if (photos) lines.push(`写真：${photos}枚`);
+  return [
+    `[info][title]${head} 清掃が終了しました[/title]担当：${j.staff_name}${lines.length ? `\n${lines.join("\n")}` : ""}[/info]`,
+    `日報と写真はこちら：${ownerPageUrl(base, shop)}`,
+  ].join("\n");
+}
+
+/** 清掃開始・終了をサロンオーナーのチャットワークに知らせる（店舗にルームIDがある場合だけ） */
+export async function notifyShopOwner(base: string, jobId: number, kind: "start" | "end"): Promise<SendResult | null> {
+  const j = repo.getJob(jobId);
+  const shop = j && repo.getShop(j.shop_id);
+  if (!j || !shop?.owner_chatwork_room_id) return null;
+  return sendChatwork(shop.owner_chatwork_room_id, ownerMessage(base, shop, j, kind));
 }

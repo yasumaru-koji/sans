@@ -85,6 +85,7 @@ function shopInput(fd: FormData): repo.ShopInput {
     pay_per_job: int(fd, "pay_per_job", 3000),
     note: str(fd, "note"),
     active: fd.get("active") ? 1 : 0,
+    owner_chatwork_room_id: normalizeRoomId(str(fd, "owner_chatwork_room_id")),
   };
 }
 
