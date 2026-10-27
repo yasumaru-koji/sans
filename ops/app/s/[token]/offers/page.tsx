@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { OfferCalendar } from "@/components/OfferCalendar";
 import { Pay, When } from "@/components/StaffCards";
 import * as repo from "@/lib/repo";
 import { dateLabel, minutesToLabel, todayJst, yen } from "@/lib/time";
-import { applyOpenCallAction, interestAllAction, respondAction } from "../actions";
+import { applyOpenCallAction, respondAction, respondBulkAction } from "../actions";
 
 const RESULT: Record<string, { text: string; tone: string }> = {
   interested: { text: "稼働希望を受け付けました。担当が決まったらチャットワークとこのページでお知らせします。", tone: "good" },
@@ -17,7 +18,7 @@ export default async function StaffOffers({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ r?: string; all?: string; tab?: string }>;
+  searchParams: Promise<{ r?: string; all?: string; tab?: string; yes?: string; no?: string }>;
 }) {
   const { token } = await params;
   const sp = await searchParams;
@@ -34,6 +35,11 @@ export default async function StaffOffers({
     <main className="page narrow staff-page">
       <h1>案内</h1>
       {result && <p className={`notice ${result.tone}`}>{result.text}</p>}
+      {sp.yes != null && (
+        <p className="notice good">
+          回答しました（希望{sp.yes}件・見送り{sp.no ?? 0}件）。担当が決まったらチャットワークとこのページでお知らせします。
+        </p>
+      )}
       {sp.all != null && <p className="notice good">{sp.all}件に稼働希望を出しました。担当が決まったらお知らせします。</p>}
 
       <nav className="seg" aria-label="案内の切り替え">
@@ -43,27 +49,36 @@ export default async function StaffOffers({
 
       {tab === "new" && (
         <>
-          <p className="small muted">登録した日時とエリアに合う案件です。住所は担当が決まってから表示します。希望者の中から本部が担当を決め、決まったらチャットワークでお知らせします。</p>
+          <p className="small muted">登録した日時とエリアに合う案件です。住所は担当が決まってから表示します。希望者の中から本部が担当を決めます。</p>
           {offers.length === 0 && openCalls.length === 0 && <p className="muted">いま届いている案内はありません。</p>}
-          {offers.length > 1 && (
-            <form action={interestAllAction.bind(null, token)} className="offer soft">
-              <p className="small">行けない日を先に「見送る」にしてから、残りをまとめて希望できます。</p>
-              <button type="submit" className="big secondary">{offers.length}件をすべて希望する</button>
-            </form>
+          {offers.length > 0 && (
+            <OfferCalendar
+              offers={offers.map((o) => ({
+                id: o.offer_id,
+                date: o.date,
+                time: minutesToLabel(o.start_time),
+                area: o.area,
+                pay: yen(o.pay + o.bonus) + (o.bonus > 0 ? "（上乗せあり）" : ""),
+              }))}
+              action={respondBulkAction.bind(null, token)}
+            />
           )}
           {offers.length > 0 && (
-            <ul className="offer-rows">
-              {offers.map((o) => (
-                <li key={o.offer_id}>
-                  <div className="info">
-                    <b>{dateLabel(o.date)} <span className="num">{minutesToLabel(o.start_time)}〜</span></b>
-                    <span className="small muted">{o.area}・<span className="num">{yen(o.pay + o.bonus)}</span>{o.bonus > 0 && "（上乗せあり）"}</span>
-                  </div>
-                  <form action={respondAction.bind(null, token, o.offer_id, true)}><button type="submit">希望</button></form>
-                  <form action={respondAction.bind(null, token, o.offer_id, false)}><button type="submit" className="secondary">見送る</button></form>
-                </li>
-              ))}
-            </ul>
+            <details>
+              <summary>1件ずつ回答する</summary>
+              <ul className="offer-rows" style={{ marginTop: 8 }}>
+                {offers.map((o) => (
+                  <li key={o.offer_id}>
+                    <div className="info">
+                      <b>{dateLabel(o.date)} <span className="num">{minutesToLabel(o.start_time)}〜</span></b>
+                      <span className="small muted">{o.area}・<span className="num">{yen(o.pay + o.bonus)}</span>{o.bonus > 0 && "（上乗せあり）"}</span>
+                    </div>
+                    <form action={respondAction.bind(null, token, o.offer_id, true)}><button type="submit">希望</button></form>
+                    <form action={respondAction.bind(null, token, o.offer_id, false)}><button type="submit" className="secondary">見送る</button></form>
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
           {openCalls.length > 0 && (
             <>

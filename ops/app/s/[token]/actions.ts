@@ -18,16 +18,6 @@ export async function respondAction(token: string, offerId: number, interested: 
   redirect(`/s/${token}/offers?r=${r}`);
 }
 
-/** 案内が届いている案件すべてに稼働を希望する */
-export async function interestAllAction(token: string) {
-  const s = staffOrThrow(token);
-  let n = 0;
-  for (const o of repo.pendingOffersForStaff(s.id)) {
-    if (repo.respondOffer(s.id, o.offer_id, true) === "interested") n++;
-  }
-  redirect(`/s/${token}/offers?all=${n}`);
-}
-
 export async function applyOpenCallAction(token: string, jobId: number) {
   const s = staffOrThrow(token);
   const r = repo.applyOpenCall(s.id, jobId);
@@ -56,4 +46,18 @@ export async function reportAction(token: string, jobId: number, fd: FormData) {
   const note = String(fd.get("note") ?? "").slice(0, 1000);
   const ok = repo.reportComplete(jobId, s.id, note, photos);
   redirect(`/s/${token}/jobs/${jobId}?r=${ok ? "done" : "invalid"}`);
+}
+
+/** カレンダーでまとめて回答する。選んだ案件は希望、それ以外は見送り */
+export async function respondBulkAction(token: string, fd: FormData) {
+  const s = staffOrThrow(token);
+  const want = new Set(fd.getAll("want").map(Number));
+  let yes = 0;
+  let no = 0;
+  for (const id of new Set(fd.getAll("all").map(Number))) {
+    const r = repo.respondOffer(s.id, id, want.has(id));
+    if (r === "interested") yes++;
+    if (r === "declined") no++;
+  }
+  redirect(`/s/${token}/offers?yes=${yes}&no=${no}`);
 }

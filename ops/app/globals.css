@@ -299,3 +299,15 @@ fieldset.checklist input { width: 20px; height: 20px; }
 .offer.report { border: 2px solid var(--accent); }
 .report-view { display: grid; gap: 10px; }
 .avail-narrow { max-width: 560px; }
+
+/* 案内カレンダー */
+.offer-cal .cal .day { display: grid; align-content: center; justify-items: center; gap: 2px; }
+.offer-cal .cal .day.none { background: transparent; border-style: dashed; color: var(--muted); cursor: default; opacity: .55; }
+.offer-cal .cal .day.has { border: 2px solid var(--accent); }
+.offer-cal .cal .day.has .job { color: var(--accent); font-size: 10px; font-weight: 700; }
+.offer-cal .cal .day.on { background: var(--accent); }
+.offer-cal .cal .day.on .d, .offer-cal .cal .day.on .job { color: var(--accent-fg); }
+.offer-cal .cal .day.part { background: linear-gradient(135deg, var(--accent) 50%, var(--accent-soft) 50%); }
+.offer-cal .cal .day.part .d { color: var(--accent-fg); }
+.submit-bar { position: sticky; bottom: calc(72px + env(safe-area-inset-bottom)); padding: 8px 0; background: linear-gradient(transparent, var(--bg) 30%); }
+.submit-bar button { width: 100%; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
