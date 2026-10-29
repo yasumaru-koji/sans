@@ -864,6 +864,7 @@ export function reportComplete(
   photos: string[],
   answers: ReportAnswers = {},
 ): boolean {
+  if (photos.length === 0) return false; // 写真は必須
   const r = run(
     `UPDATE jobs SET status = 'completed', completed_at = datetime('now'),
        checked_in_at = COALESCE(checked_in_at, datetime('now')), report_note = ?, report_photos = ?, report_answers = ?

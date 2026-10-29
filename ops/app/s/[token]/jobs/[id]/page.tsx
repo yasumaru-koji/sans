@@ -12,6 +12,7 @@ const RESULT: Record<string, { text: string; tone: string }> = {
   in: { text: "清掃開始を本部に報告しました。終わったら下の日報で終了を報告してください。", tone: "good" },
   done: { text: "清掃終了と日報を受け付けました。おつかれさまでした。", tone: "good" },
   unchecked: { text: "チェック項目をすべて確認してから報告してください。", tone: "bad" },
+  nophoto: { text: "仕上がりと施錠の写真を1枚以上付けて報告してください。", tone: "bad" },
   unanswered: { text: "アンケートにすべて答えてから報告してください。", tone: "bad" },
   invalid: { text: "報告できませんでした。本部に連絡してください。", tone: "bad" },
 };
@@ -96,8 +97,8 @@ export default async function StaffJob({
             ))}
           </fieldset>
           <div className="stack">
-            <span className="small muted">仕上がりと施錠の写真（{MAX_PHOTOS}枚まで）</span>
-            <PhotoInput name="photos" max={MAX_PHOTOS} />
+            <span className="small muted">仕上がりと施錠の写真<b className="req">必須</b>（1〜{MAX_PHOTOS}枚）</span>
+            <PhotoInput name="photos" max={MAX_PHOTOS} required />
           </div>
           <label>気づいたこと・お店への連絡（任意）
             <textarea name="note" placeholder="例：洗剤が残りわずかでした" />

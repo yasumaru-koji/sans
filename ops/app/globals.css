@@ -353,3 +353,4 @@ button.danger-fill { background: var(--bad); border-color: var(--bad); color: #f
 .ng-toggle span { padding: 10px 14px; border: 1px solid var(--bad); border-radius: 8px; white-space: nowrap; }
 .ng-toggle.on span { background: var(--bad); color: #fff; }
 .ng-toggle input:focus-visible + span { outline: 2px solid var(--bad); outline-offset: 2px; }
+.req { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 700; color: #fff; background: var(--bad); border-radius: 4px; padding: 0 6px; vertical-align: 1px; }

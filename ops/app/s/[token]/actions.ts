@@ -43,12 +43,11 @@ export async function checkInAction(token: string, jobId: number) {
   redirect(`/s/${token}/jobs/${jobId}?r=in`);
 }
 
-/** 完了報告。チェック項目がすべて付いていないと受け付けない */
+/** 完了報告。チェック項目・アンケート・写真（1枚以上）がそろわないと受け付けない */
 export async function reportAction(token: string, jobId: number, fd: FormData) {
   const s = staffOrThrow(token);
   const checked = fd.getAll("check").length;
   if (checked < CLOSING_CHECKS.length) redirect(`/s/${token}/jobs/${jobId}?r=unchecked`);
-  const photos = await savePhotos(fd.getAll("photos").filter((f): f is File => f instanceof File));
   const note = String(fd.get("note") ?? "").slice(0, 1000);
   const answers: ReportAnswers = {};
   for (const q of REPORT_QUESTIONS) {
@@ -56,6 +55,9 @@ export async function reportAction(token: string, jobId: number, fd: FormData) {
     if (picked.length === 0) redirect(`/s/${token}/jobs/${jobId}?r=unanswered`);
     answers[q.key] = q.multi ? picked : picked.slice(0, 1);
   }
+  // 写真は必須（KOJIさん 2026-10-29）。画像として保存できたものが1枚もなければ受け付けない
+  const photos = await savePhotos(fd.getAll("photos").filter((f): f is File => f instanceof File));
+  if (photos.length === 0) redirect(`/s/${token}/jobs/${jobId}?r=nophoto`);
   const ok = repo.reportComplete(jobId, s.id, note, photos, answers);
   if (ok) {
     await notifyAdminProgress(jobId, "end");
