@@ -1,0 +1,202 @@
+<title>清掃スタッフのUIUX</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
+<style>
+/* Layout: A4横（297×210mm）の紙面を1188×840の固定座標で組み、画面では幅に合わせて縮小。印刷用の白い紙面に固定した単一テーマ */
+:root{
+  --desk:#e6ecec; --paper:#ffffff; --ink:#1b2627; --muted:#5b6b6d; --line:#d8e0e0; --panel:#f4f7f7;
+  --accent:#0f7c80; --accent-soft:#e1f0f0; --warm:#c4621d; --warm-soft:#fbeee4; --bad:#b23b3b; --bad-soft:#f8e3e3; --grey:#c9d3d4; --blue:#4a6fa8; --blue-soft:#e5ecf6;
+  --font:"Zen Kaku Gothic New","IPAGothic","Hiragino Sans","Yu Gothic",sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--desk);color:var(--ink);font-family:var(--font)}
+.wrap{padding-block:24px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;justify-items:center;gap:12px}
+.frame{width:100%;max-width:1188px;aspect-ratio:297/210;position:relative;overflow:hidden;box-shadow:0 2px 14px rgba(27,38,39,.12);background:var(--paper)}
+.paper{position:absolute;top:0;left:0;width:1188px;height:840px;background:var(--paper);transform-origin:0 0;font-size:13px;line-height:1.5}
+.cap{font-size:12px;color:var(--muted);max-width:1188px;width:100%}
+@page{size:A4 landscape;margin:0}
+@media print{body{background:#fff}.wrap{padding:0;display:block}.frame{width:297mm;height:210mm;max-width:none;box-shadow:none;aspect-ratio:auto}.cap{display:none}}
+p{margin:0}
+.abs{position:absolute}
+.title{left:40px;top:34px;font-size:26px;font-weight:900}
+.sub{left:40px;top:76px;font-size:13px;color:var(--muted)}
+.pageno{right:40px;top:44px;font-size:12px;color:var(--muted)}
+.panel{position:absolute;background:var(--panel);border-radius:14px;padding:18px 20px}
+.panel h2{margin:0;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:baseline}
+.panel h2 small{font-size:12px;font-weight:400;color:var(--muted)}
+.foot{left:40px;top:818px;font-size:10px;color:var(--muted)}
+.foot.r{left:auto;right:40px}
+/* 手順の帯 */
+.steps{display:grid;gap:12px;margin-top:12px}
+.st{background:#fff;border-radius:10px;padding:10px 12px;display:grid;gap:3px;align-content:start;position:relative;border-top:4px solid var(--accent)}
+.st .n{font-size:11px;font-weight:700;color:var(--accent)}
+.st b{font-size:14px;line-height:1.35}
+.st span{font-size:11.5px;color:var(--muted);line-height:1.45}
+.st.w{border-top-color:var(--warm)} .st.w .n{color:var(--warm)}
+.st.b{border-top-color:var(--blue)} .st.b .n{color:var(--blue)}
+.st.g{border-top-color:var(--grey)} .st.g .n{color:var(--muted)}
+.st:not(:last-child)::after{content:"";position:absolute;right:-11px;top:50%;width:0;height:0;border:5px solid transparent;border-left:7px solid #9aa8aa;transform:translateY(-50%)}
+/* 説明の箇条 */
+.pts{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.pts li{font-size:12px;line-height:1.5;padding-left:14px;position:relative}
+.pts li::before{content:"";position:absolute;left:2px;top:7px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.pts li b{color:var(--accent)}
+
+.phones{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:14px}
+.shot{display:grid;gap:8px;justify-items:center;align-content:start}
+.cap2{font-size:11.5px;color:var(--muted);text-align:center;line-height:1.45}
+.cap2 b{display:block;color:var(--ink);font-size:13px}
+.cap2 .hl{color:var(--blue);font-weight:700}
+.phone{width:206px;height:356px;border:2px solid #9aa8aa;border-radius:22px;background:#fff;padding:16px 11px 10px;display:grid;align-content:start;gap:6px;overflow:hidden}
+.phone .h{font-size:12px;font-weight:700}
+.q{font-size:10px;font-weight:700;margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chips span{font-size:9.5px;border:1px solid var(--line);border-radius:99px;padding:1px 8px}
+.chips span.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal .wd{font-size:8px;text-align:center;color:var(--muted)}
+.cal .d{height:30px;border:1px solid var(--line);border-radius:3px;padding:1px 2px;display:grid;align-content:start;gap:1px;font-size:7.5px;line-height:1}
+.cal .d.ok{background:var(--warm-soft);border-color:#efc9ab;color:var(--warm);font-weight:700}
+.cal .d.off{border-style:dashed;background:#fafcfc;color:var(--muted)}
+.cal .d.sel{border:1.5px solid var(--ink)}
+.cal .d i{display:block;height:6px;border-radius:1.5px;background:var(--accent)}
+.cal .d i.ng{background:var(--bad)}
+.cal .d i.lk{background:var(--grey)}
+.day{border:1px solid var(--line);border-radius:8px;padding:5px 6px;display:grid;gap:3px}
+.dh{font-size:9.5px;font-weight:700}
+.sh{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;border:1px solid var(--line);border-radius:5px;padding:3px 6px}
+.sh em{font-style:normal;font-size:8.5px;color:var(--bad);border:1px solid var(--bad);border-radius:4px;padding:0 5px;font-weight:700}
+.sh.ng{background:var(--bad-soft);border-color:#e7b4b4}
+.sh.ng em{background:var(--bad);color:#fff}
+.ngbtn{background:var(--bad);color:#fff;border-radius:7px;font-size:10px;font-weight:700;text-align:center;padding:6px 0}
+.okbtn{background:var(--accent);color:#fff;border-radius:7px;font-size:10px;font-weight:700;text-align:center;padding:6px 0;margin-top:2px}
+.btn2{border:1.5px solid var(--accent);color:var(--accent);border-radius:7px;font-size:10px;font-weight:700;text-align:center;padding:4px 0}
+.small{font-size:9px;color:var(--muted);line-height:1.4}
+.started{background:var(--accent-soft);color:var(--accent);font-size:9.5px;font-weight:700;border-radius:6px;padding:4px 8px}
+.ph{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.ph div{height:34px;border-radius:4px;background:linear-gradient(135deg,#cfe2e2,#a9c9ca)}
+.ph div:nth-child(2){background:linear-gradient(135deg,#d9dee8,#b5c2d8)}
+.ph div.add{background:#fff;border:1px dashed #9aa8aa;display:grid;place-content:center;font-size:14px;color:var(--muted)}
+.paybox{background:var(--accent-soft);border-radius:10px;padding:10px;display:grid;gap:2px}
+.paybox span{font-size:9.5px;color:var(--accent);font-weight:700}
+.paybox b{font-size:22px;font-weight:900}
+.paybox small{font-size:8.5px;color:var(--muted)}
+.payrow{display:grid;grid-template-columns:34px 1fr auto;gap:6px;align-items:center;font-size:10px;border-bottom:1px solid var(--line);padding:4px 2px}
+.payrow em{font-style:normal;font-size:8.5px;background:#eef1f1;color:var(--muted);border-radius:99px;padding:1px 7px}
+.cal.reg .d{height:24px}
+.req{display:inline-block;font-size:8px;font-weight:700;color:#fff;background:var(--bad);border-radius:3px;padding:0 4px;vertical-align:1px}
+</style>
+
+<div class="wrap">
+<div class="frame" id="frame">
+<div class="paper" id="paper" role="img" aria-label="清掃スタッフのUIUX：スタッフの1か月とマイページの4画面">
+<div class="abs title">清掃スタッフのUIUX</div>
+<div class="abs sub">スマホのマイページだけで完結。ログイン不要の専用URLをチャットワークで受け取り、下の4つのタブで使う</div>
+<div class="abs pageno">ビジネスモデル図 5／6</div>
+
+<div class="panel" style="left:30px;top:116px;width:1128px;height:178px">
+  <h2>① スタッフの1か月<small>本部とのやりとりはチャットワークの自動通知とマイページだけ</small></h2>
+  <div class="steps" style="grid-template-columns:repeat(5,1fr)">
+    <div class="st w"><span class="n">毎月20日まで</span><b>翌月の予定を登録</b><span>働ける曜日・日付・時間帯・エリア・月の上限回数</span></div>
+    <div class="st"><span class="n">21日ごろ</span><b>シフトが届く</b><span>本部が組んだシフトがチャットワークに届き、カレンダーに入る</span></div>
+    <div class="st w"><span class="n">作業日の7日前まで</span><b>都合の悪い日は「不可」</b><span>カレンダーでチェックして送るだけ。以降は本部へ直接連絡</span></div>
+    <div class="st"><span class="n">前日・当日</span><b>リマインドが届く</b><span>店名・住所・鍵の受け取り方と作業画面のURL</span></div>
+    <div class="st w"><span class="n">作業の夜</span><b>開始・終了と日報</b><span>着いたら「開始」、終わったら選ぶだけの日報と写真（必須）で「終了」</span></div>
+  </div>
+</div>
+
+<div class="panel" style="left:30px;top:310px;width:1128px;height:498px">
+  <h2>② マイページの画面<small>下のタブ：ホーム／シフト／予定登録／報酬</small></h2>
+  <div class="phones">
+
+    <div class="shot">
+      <div class="phone">
+        <div class="h">予定登録　2026年11月</div>
+        <div class="q">エリア</div>
+        <div class="chips"><span class="on">渋谷区</span><span class="on">新宿区</span><span>港区</span></div>
+        <div class="q">時間帯</div>
+        <div class="chips"><span class="on">20:00〜25:00</span></div>
+        <div class="q">働ける日（曜日でまとめて選べる）</div>
+        <div class="cal reg">
+          <div class="wd">日</div><div class="wd">月</div><div class="wd">火</div><div class="wd">水</div><div class="wd">木</div><div class="wd">金</div><div class="wd">土</div>
+          <div class="d">1</div><div class="d ok">2</div><div class="d">3</div><div class="d ok">4</div><div class="d ok">5</div><div class="d ok">6</div><div class="d">7</div>
+          <div class="d">8</div><div class="d ok">9</div><div class="d">10</div><div class="d ok">11</div><div class="d ok">12</div><div class="d ok">13</div><div class="d">14</div>
+          <div class="d">15</div><div class="d ok">16</div><div class="d">17</div><div class="d ok">18</div><div class="d ok">19</div><div class="d ok">20</div><div class="d">21</div>
+          <div class="d">22</div><div class="d ok">23</div><div class="d">24</div><div class="d ok">25</div><div class="d ok">26</div><div class="d ok">27</div><div class="d">28</div>
+        </div>
+        <div class="q">月の上限</div>
+        <div class="chips"><span class="on">34回まで</span></div>
+        <div class="okbtn">この内容で登録する</div>
+      </div>
+      <p class="cap2"><b>1. 予定登録</b>月に1回、働ける日時をカレンダーで</p>
+    </div>
+
+    <div class="shot">
+      <div class="phone">
+        <div class="h">シフト　2026年11月　15件</div>
+        <div class="cal">
+          <div class="wd">日</div><div class="wd">月</div><div class="wd">火</div><div class="wd">水</div><div class="wd">木</div><div class="wd">金</div><div class="wd">土</div>
+          <div class="d off">1</div><div class="d">2<i class="lk"></i></div><div class="d off">3</div><div class="d">4<i></i></div><div class="d">5<i></i></div><div class="d off">6</div><div class="d off">7</div>
+          <div class="d off">8</div><div class="d">9<i></i></div><div class="d off">10</div><div class="d">11<i></i></div><div class="d">12<i></i><i></i></div><div class="d">13<i></i></div><div class="d off">14</div>
+          <div class="d off">15</div><div class="d">16<i></i></div><div class="d off">17</div><div class="d sel">18<i></i><i class="ng"></i><i></i></div><div class="d off">19</div><div class="d">20<i></i></div><div class="d off">21</div>
+          <div class="d off">22</div><div class="d">23<i></i></div><div class="d off">24</div><div class="d">25<i></i></div><div class="d off">26</div><div class="d">27<i></i></div><div class="d off">28</div>
+        </div>
+        <div class="day">
+          <div class="dh">11/18（水）のシフト　3件</div>
+          <div class="sh"><span>20:00 サロンB</span><em>不可</em></div>
+          <div class="sh ng"><span>21:30 サロンC</span><em>不可にする</em></div>
+          <div class="sh"><span>23:00 サロンA</span><em>不可</em></div>
+        </div>
+        <div class="ngbtn">1件を「不可」で本部に送る</div>
+      </div>
+      <p class="cap2"><b>2. シフトの確認と「不可」</b>1日最大3件。日付を押して選ぶ</p>
+    </div>
+
+    <div class="shot">
+      <div class="phone">
+        <div class="h">今夜の作業　サロンA 22:00〜</div>
+        <div class="btn2">地図を開く</div>
+        <div class="small">鍵：KEY STATION 渋谷（番号は当日届く）</div>
+        <div class="started">22:02 清掃を開始しました</div>
+        <div class="q">清掃前の店内の状態</div>
+        <div class="chips"><span>きれい</span><span class="on">ふつう</span><span>汚れが多い</span></div>
+        <div class="q">補充が必要な備品</div>
+        <div class="chips"><span>なし</span><span class="on">洗剤</span><span class="on">タオル</span></div>
+        <div class="q">仕上がりと施錠の写真 <span class="req">必須</span></div>
+        <div class="ph"><div></div><div></div><div class="add">＋</div></div>
+        <div class="okbtn">清掃終了を報告する</div>
+      </div>
+      <p class="cap2"><b>3. 当日の作業と日報</b>選ぶだけのアンケート＋写真（必須）で約1分<br><span class="hl">終了報告はサロンオーナーにも自動で届く</span></p>
+    </div>
+
+    <div class="shot">
+      <div class="phone">
+        <div class="h">報酬</div>
+        <div class="paybox"><span>11月の見込み</span><b>102,000円</b><small>完了 20回 60,000円＋予定 14回 42,000円</small></div>
+        <div class="q">これまでの報酬</div>
+        <div class="payrow"><span>10月</span><b>96,000円</b><em>支払済</em></div>
+        <div class="payrow"><span>9月</span><b>99,000円</b><em>支払済</em></div>
+        <div class="payrow"><span>8月</span><b>90,000円</b><em>支払済</em></div>
+        <div class="small" style="margin-top:4px">1回3,000円。完了報告をした回数で集計されます</div>
+      </div>
+      <p class="cap2"><b>4. 報酬</b>今月の見込みと支払状況をいつでも確認</p>
+    </div>
+
+  </div>
+</div>
+
+<div class="abs foot">画面は開発中の試作です（2026年10月時点）。日報の質問は仮。完了報告の写真は1枚以上必須。スタッフ名・サロン名・時刻・金額は例です。</div>
+<div class="abs foot r">株式会社SaNS</div>
+</div>
+</div>
+<p class="cap">ビジネスモデル図の5枚目（A4横）です。PDF版も用意しています。</p>
+</div>
+<script>
+(function(){
+  var f=document.getElementById("frame"),p=document.getElementById("paper");
+  function fit(){p.style.transform="scale("+(f.clientWidth/1188)+")";}
+  fit();
+  if(window.ResizeObserver){new ResizeObserver(fit).observe(f);}else{window.addEventListener("resize",fit);}
+})();
+</script>

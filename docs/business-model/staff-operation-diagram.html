@@ -1,0 +1,312 @@
+<title>サロン締め作業代行 スタッフ稼働イメージ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
+<style>
+/* Layout: A4横（297×210mm）の紙面を1枚のSVGで描き、画面では幅に合わせて縮小。印刷用の白い紙面に固定した単一テーマ */
+:root{
+  --desk:#e6ecec; --paper:#ffffff; --ink:#1b2627; --muted:#5b6b6d;
+  --font:"Zen Kaku Gothic New","IPAGothic","Hiragino Sans","Yu Gothic",sans-serif;
+  color-scheme:light;
+}
+body{background:var(--desk);color:var(--ink);font-family:var(--font)}
+.wrap{padding-block:24px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;justify-items:center;gap:12px}
+.paper{width:100%;max-width:1188px;aspect-ratio:297/210;background:var(--paper);box-shadow:0 2px 14px rgba(27,38,39,.12)}
+.paper svg{display:block;width:100%;height:100%}
+.cap{font-size:12px;color:var(--muted);max-width:1188px;width:100%}
+svg text{font-family:var(--font)}
+@page{size:A4 landscape;margin:0}
+@media print{
+  body{background:#fff}
+  .wrap{padding:0}
+  .paper{width:297mm;height:210mm;max-width:none;box-shadow:none}
+  .cap{display:none}
+}
+</style>
+
+<div class="wrap">
+<div class="paper">
+<svg viewBox="0 0 1188 840" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="スタッフの稼働イメージ：担当の組み方、1晩の動き、1か月のシフト、収入">
+<defs>
+<marker id="m2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9aa8aa"/></marker>
+<g id="p2"><circle cx="20" cy="11" r="8"/><path d="M5,38 C5,26 11,21 20,21 C29,21 35,26 35,38 Z"/></g>
+</defs>
+<rect width="1188" height="840" fill="#ffffff"/>
+<text x="40" y="62" font-size="26" font-weight="900" fill="#1b2627">スタッフの稼働イメージ</text>
+<text x="40" y="90" font-size="13" fill="#5b6b6d">月10万円を稼ぎたいスタッフAの例（扶養の範囲で働く主婦層を想定）。報酬は1回3,000円（約1時間）</text>
+<text x="1148" y="62" font-size="12" text-anchor="end" fill="#5b6b6d">ビジネスモデル図 2／6</text>
+<rect x="30" y="116" width="544" height="320" rx="14" fill="#f4f7f7"/>
+<text x="50" y="146" font-size="16" font-weight="700" fill="#1b2627">① 担当の組み方</text>
+<text x="554" y="146" font-size="12" text-anchor="end" fill="#5b6b6d">各店の25回を担当2〜3名で分け合う</text>
+<rect x="614" y="116" width="544" height="320" rx="14" fill="#f4f7f7"/>
+<text x="634" y="146" font-size="16" font-weight="700" fill="#1b2627">② 1晩の動き</text>
+<text x="1138" y="146" font-size="12" text-anchor="end" fill="#5b6b6d">閉店後に2店を回る</text>
+<rect x="30" y="452" width="544" height="356" rx="14" fill="#f4f7f7"/>
+<text x="50" y="482" font-size="16" font-weight="700" fill="#1b2627">③ 1か月のシフト（2026年11月の例）</text>
+<text x="554" y="482" font-size="12" text-anchor="end" fill="#5b6b6d">17夜・34回</text>
+<rect x="614" y="452" width="544" height="356" rx="14" fill="#f4f7f7"/>
+<text x="634" y="482" font-size="16" font-weight="700" fill="#1b2627">④ 収入と1か月の流れ</text>
+<g transform="translate(68,206) scale(1.6)" fill="#c4621d"><use href="#p2"/></g>
+<text x="100" y="292" font-size="15" font-weight="700" text-anchor="middle" fill="#1b2627">スタッフA</text>
+<text x="100" y="311" font-size="11" text-anchor="middle" fill="#5b6b6d">3店で計34回</text>
+<line x1="140" y1="260" x2="226" y2="180" stroke="#c4621d" stroke-width="3"/>
+<rect x="154" y="208.0" width="48" height="24" rx="12" fill="#c4621d"/>
+<text x="178" y="225.0" font-size="13" font-weight="700" text-anchor="middle" fill="#ffffff">15回</text>
+<rect x="226" y="150" width="168" height="60" rx="8" fill="#ffffff" stroke="#0f7c80" stroke-width="2"/>
+<rect x="226" y="150" width="8" height="60" fill="#0f7c80"/>
+<text x="244" y="175" font-size="14" font-weight="700" fill="#1b2627">サロンA</text>
+<text x="244" y="196" font-size="11" fill="#5b6b6d">渋谷・20:00閉店</text>
+<text x="384" y="175" font-size="11.5" font-weight="700" text-anchor="end" fill="#c4621d">主担当</text>
+<line x1="394" y1="180" x2="430" y2="180" stroke="#9aa8aa" stroke-width="2"/>
+<g transform="translate(432,166) scale(0.72)" fill="#9aa8aa"><use href="#p2"/></g>
+<text x="466" y="178" font-size="12" fill="#1b2627">スタッフB</text>
+<text x="466" y="194" font-size="11" fill="#5b6b6d">10回</text>
+<line x1="140" y1="260" x2="226" y2="260" stroke="#c4621d" stroke-width="2"/>
+<rect x="154" y="248.0" width="48" height="24" rx="12" fill="#c4621d"/>
+<text x="178" y="265.0" font-size="13" font-weight="700" text-anchor="middle" fill="#ffffff">10回</text>
+<rect x="226" y="230" width="168" height="60" rx="8" fill="#ffffff" stroke="#4a6fa8" stroke-width="2"/>
+<rect x="226" y="230" width="8" height="60" fill="#4a6fa8"/>
+<text x="244" y="255" font-size="14" font-weight="700" fill="#1b2627">サロンB</text>
+<text x="244" y="276" font-size="11" fill="#5b6b6d">渋谷・20:30閉店</text>
+<text x="384" y="255" font-size="11.5" font-weight="700" text-anchor="end" fill="#c4621d">副担当</text>
+<line x1="394" y1="260" x2="430" y2="260" stroke="#9aa8aa" stroke-width="2"/>
+<g transform="translate(432,246) scale(0.72)" fill="#9aa8aa"><use href="#p2"/></g>
+<text x="466" y="258" font-size="12" fill="#1b2627">スタッフC</text>
+<text x="466" y="274" font-size="11" fill="#5b6b6d">15回</text>
+<line x1="140" y1="260" x2="226" y2="340" stroke="#c4621d" stroke-width="2"/>
+<rect x="154" y="288.0" width="48" height="24" rx="12" fill="#c4621d"/>
+<text x="178" y="305.0" font-size="13" font-weight="700" text-anchor="middle" fill="#ffffff">9回</text>
+<rect x="226" y="310" width="168" height="60" rx="8" fill="#ffffff" stroke="#8a5fa8" stroke-width="2"/>
+<rect x="226" y="310" width="8" height="60" fill="#8a5fa8"/>
+<text x="244" y="335" font-size="14" font-weight="700" fill="#1b2627">サロンC</text>
+<text x="244" y="356" font-size="11" fill="#5b6b6d">恵比寿・21:00閉店</text>
+<text x="384" y="335" font-size="11.5" font-weight="700" text-anchor="end" fill="#c4621d">副担当</text>
+<line x1="394" y1="340" x2="430" y2="340" stroke="#9aa8aa" stroke-width="2"/>
+<g transform="translate(432,326) scale(0.72)" fill="#9aa8aa"><use href="#p2"/></g>
+<text x="466" y="338" font-size="12" fill="#1b2627">スタッフD</text>
+<text x="466" y="354" font-size="11" fill="#5b6b6d">16回</text>
+<rect x="46" y="376" width="512" height="52" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="60" y="395" font-size="12" font-weight="700" fill="#0f7c80">担当を1名にしない理由</text>
+<rect x="60" y="402" width="112" height="20" rx="10" fill="#e1f0f0"/>
+<text x="116.0" y="416" font-size="11" font-weight="700" text-anchor="middle" fill="#0f7c80">評価を比べられる</text>
+<rect x="180" y="402" width="146" height="20" rx="10" fill="#e1f0f0"/>
+<text x="253.0" y="416" font-size="11" font-weight="700" text-anchor="middle" fill="#0f7c80">店舗の知見を共有できる</text>
+<rect x="334" y="402" width="156" height="20" rx="10" fill="#e1f0f0"/>
+<text x="412.0" y="416" font-size="11" font-weight="700" text-anchor="middle" fill="#0f7c80">急な欠員に代わりを出せる</text>
+<line x1="712.0" y1="176" x2="1135.0" y2="176" stroke="#cfd9d9"/>
+<line x1="712.0" y1="170" x2="712.0" y2="340" stroke="#e1e8e8"/>
+<text x="712.0" y="164" font-size="11" text-anchor="middle" fill="#5b6b6d">20:00</text>
+<line x1="782.5" y1="170" x2="782.5" y2="340" stroke="#e1e8e8"/>
+<text x="782.5" y="164" font-size="11" text-anchor="middle" fill="#5b6b6d">20:30</text>
+<line x1="853.0" y1="170" x2="853.0" y2="340" stroke="#e1e8e8"/>
+<text x="853.0" y="164" font-size="11" text-anchor="middle" fill="#5b6b6d">21:00</text>
+<line x1="923.5" y1="170" x2="923.5" y2="340" stroke="#e1e8e8"/>
+<text x="923.5" y="164" font-size="11" text-anchor="middle" fill="#5b6b6d">21:30</text>
+<line x1="994.0" y1="170" x2="994.0" y2="340" stroke="#e1e8e8"/>
+<text x="994.0" y="164" font-size="11" text-anchor="middle" fill="#5b6b6d">22:00</text>
+<line x1="1064.5" y1="170" x2="1064.5" y2="340" stroke="#e1e8e8"/>
+<text x="1064.5" y="164" font-size="11" text-anchor="middle" fill="#5b6b6d">22:30</text>
+<line x1="1135.0" y1="170" x2="1135.0" y2="340" stroke="#e1e8e8"/>
+<text x="1135.0" y="164" font-size="11" text-anchor="middle" fill="#5b6b6d">23:00</text>
+<text x="634" y="214" font-size="12" font-weight="700" fill="#1b2627">A→B</text>
+<rect x="747.25" y="190" width="141.0" height="40" rx="6" fill="#0f7c80"/>
+<text x="817.75" y="208" font-size="12.5" font-weight="700" text-anchor="middle" fill="#ffffff">サロンA</text>
+<text x="817.75" y="223" font-size="10" text-anchor="middle" fill="#ffffff">3,000円</text>
+<line x1="890.25" y1="210" x2="909.75" y2="210" stroke="#9aa8aa" stroke-width="2" stroke-dasharray="3 3" marker-end="url(#m2)"/>
+<text x="900.0" y="238" font-size="10" text-anchor="middle" fill="#5b6b6d">10分</text>
+<rect x="911.75" y="190" width="141.0" height="40" rx="6" fill="#4a6fa8"/>
+<text x="982.25" y="208" font-size="12.5" font-weight="700" text-anchor="middle" fill="#ffffff">サロンB</text>
+<text x="982.25" y="223" font-size="10" text-anchor="middle" fill="#ffffff">3,000円</text>
+<text x="1135.0" y="252" font-size="11" text-anchor="end" fill="#5b6b6d">22:25終了・6,000円</text>
+<text x="634" y="292" font-size="12" font-weight="700" fill="#1b2627">A→C</text>
+<rect x="747.25" y="268" width="141.0" height="40" rx="6" fill="#0f7c80"/>
+<text x="817.75" y="286" font-size="12.5" font-weight="700" text-anchor="middle" fill="#ffffff">サロンA</text>
+<text x="817.75" y="301" font-size="10" text-anchor="middle" fill="#ffffff">3,000円</text>
+<line x1="890.25" y1="288" x2="921.5" y2="288" stroke="#9aa8aa" stroke-width="2" stroke-dasharray="3 3" marker-end="url(#m2)"/>
+<text x="905.875" y="316" font-size="10" text-anchor="middle" fill="#5b6b6d">15分</text>
+<rect x="923.5" y="268" width="141.0" height="40" rx="6" fill="#8a5fa8"/>
+<text x="994.0" y="286" font-size="12.5" font-weight="700" text-anchor="middle" fill="#ffffff">サロンC</text>
+<text x="994.0" y="301" font-size="10" text-anchor="middle" fill="#ffffff">3,000円</text>
+<text x="1135.0" y="330" font-size="11" text-anchor="end" fill="#5b6b6d">22:30終了・6,000円</text>
+<text x="634" y="372" font-size="12.5" fill="#1b2627">1晩2店・移動込み約2.3時間で6,000円。時給にすると約2,600円</text>
+<text x="634" y="394" font-size="11.5" fill="#5b6b6d">閉店時刻の早い店から順につなぐので、22時半には帰れる</text>
+<text x="634" y="414" font-size="11.5" fill="#5b6b6d">鍵はキーボックス、作業前後の写真で完了を報告</text>
+<text x="86.0" y="504" font-size="11.5" text-anchor="middle" fill="#b23b3b">日</text>
+<text x="158.0" y="504" font-size="11.5" text-anchor="middle" fill="#5b6b6d">月</text>
+<text x="230.0" y="504" font-size="11.5" text-anchor="middle" fill="#5b6b6d">火</text>
+<text x="302.0" y="504" font-size="11.5" text-anchor="middle" fill="#5b6b6d">水</text>
+<text x="374.0" y="504" font-size="11.5" text-anchor="middle" fill="#5b6b6d">木</text>
+<text x="446.0" y="504" font-size="11.5" text-anchor="middle" fill="#5b6b6d">金</text>
+<text x="518.0" y="504" font-size="11.5" text-anchor="middle" fill="#5b6b6d">土</text>
+<rect x="52" y="514" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="58" y="529" font-size="11" fill="#1b2627">1</text>
+<rect x="124" y="514" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="130" y="529" font-size="11" fill="#1b2627">2</text>
+<rect x="130" y="536" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="143" y="550" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="160" y="536" width="26" height="20" rx="4" fill="#4a6fa8"/>
+<text x="173" y="550" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">B</text>
+<rect x="196" y="514" width="68" height="48" rx="5" fill="#e7ecec" stroke="#cfd9d9"/>
+<text x="202" y="529" font-size="11" fill="#1b2627">3</text>
+<text x="230.0" y="548" font-size="10" text-anchor="middle" fill="#5b6b6d">定休日</text>
+<rect x="268" y="514" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="274" y="529" font-size="11" fill="#1b2627">4</text>
+<rect x="274" y="536" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="287" y="550" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="304" y="536" width="26" height="20" rx="4" fill="#8a5fa8"/>
+<text x="317" y="550" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">C</text>
+<rect x="340" y="514" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="346" y="529" font-size="11" fill="#1b2627">5</text>
+<rect x="346" y="536" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="359" y="550" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="376" y="536" width="26" height="20" rx="4" fill="#8a5fa8"/>
+<text x="389" y="550" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">C</text>
+<rect x="412" y="514" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="418" y="529" font-size="11" fill="#1b2627">6</text>
+<rect x="484" y="514" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="490" y="529" font-size="11" fill="#1b2627">7</text>
+<rect x="490" y="536" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="503" y="550" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="520" y="536" width="26" height="20" rx="4" fill="#4a6fa8"/>
+<text x="533" y="550" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">B</text>
+<rect x="52" y="566" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="58" y="581" font-size="11" fill="#1b2627">8</text>
+<rect x="124" y="566" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="130" y="581" font-size="11" fill="#1b2627">9</text>
+<rect x="130" y="588" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="143" y="602" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="160" y="588" width="26" height="20" rx="4" fill="#4a6fa8"/>
+<text x="173" y="602" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">B</text>
+<rect x="196" y="566" width="68" height="48" rx="5" fill="#e7ecec" stroke="#cfd9d9"/>
+<text x="202" y="581" font-size="11" fill="#1b2627">10</text>
+<text x="230.0" y="600" font-size="10" text-anchor="middle" fill="#5b6b6d">定休日</text>
+<rect x="268" y="566" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="274" y="581" font-size="11" fill="#1b2627">11</text>
+<rect x="274" y="588" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="287" y="602" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="304" y="588" width="26" height="20" rx="4" fill="#8a5fa8"/>
+<text x="317" y="602" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">C</text>
+<rect x="340" y="566" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="346" y="581" font-size="11" fill="#1b2627">12</text>
+<rect x="346" y="588" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="359" y="602" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="376" y="588" width="26" height="20" rx="4" fill="#8a5fa8"/>
+<text x="389" y="602" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">C</text>
+<rect x="412" y="566" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="418" y="581" font-size="11" fill="#1b2627">13</text>
+<rect x="484" y="566" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="490" y="581" font-size="11" fill="#1b2627">14</text>
+<rect x="490" y="588" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="503" y="602" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="520" y="588" width="26" height="20" rx="4" fill="#4a6fa8"/>
+<text x="533" y="602" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">B</text>
+<rect x="52" y="618" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="58" y="633" font-size="11" fill="#1b2627">15</text>
+<rect x="124" y="618" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="130" y="633" font-size="11" fill="#1b2627">16</text>
+<rect x="130" y="640" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="143" y="654" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="160" y="640" width="26" height="20" rx="4" fill="#4a6fa8"/>
+<text x="173" y="654" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">B</text>
+<rect x="196" y="618" width="68" height="48" rx="5" fill="#e7ecec" stroke="#cfd9d9"/>
+<text x="202" y="633" font-size="11" fill="#1b2627">17</text>
+<text x="230.0" y="652" font-size="10" text-anchor="middle" fill="#5b6b6d">定休日</text>
+<rect x="268" y="618" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="274" y="633" font-size="11" fill="#1b2627">18</text>
+<rect x="274" y="640" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="287" y="654" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="304" y="640" width="26" height="20" rx="4" fill="#8a5fa8"/>
+<text x="317" y="654" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">C</text>
+<rect x="340" y="618" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="346" y="633" font-size="11" fill="#1b2627">19</text>
+<rect x="346" y="640" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="359" y="654" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="376" y="640" width="26" height="20" rx="4" fill="#8a5fa8"/>
+<text x="389" y="654" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">C</text>
+<rect x="412" y="618" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="418" y="633" font-size="11" fill="#1b2627">20</text>
+<rect x="484" y="618" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="490" y="633" font-size="11" fill="#1b2627">21</text>
+<rect x="490" y="640" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="503" y="654" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="520" y="640" width="26" height="20" rx="4" fill="#4a6fa8"/>
+<text x="533" y="654" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">B</text>
+<rect x="52" y="670" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="58" y="685" font-size="11" fill="#1b2627">22</text>
+<rect x="124" y="670" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="130" y="685" font-size="11" fill="#1b2627">23</text>
+<rect x="130" y="692" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="143" y="706" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="160" y="692" width="26" height="20" rx="4" fill="#4a6fa8"/>
+<text x="173" y="706" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">B</text>
+<rect x="196" y="670" width="68" height="48" rx="5" fill="#e7ecec" stroke="#cfd9d9"/>
+<text x="202" y="685" font-size="11" fill="#1b2627">24</text>
+<text x="230.0" y="704" font-size="10" text-anchor="middle" fill="#5b6b6d">定休日</text>
+<rect x="268" y="670" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="274" y="685" font-size="11" fill="#1b2627">25</text>
+<rect x="274" y="692" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="287" y="706" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="304" y="692" width="26" height="20" rx="4" fill="#8a5fa8"/>
+<text x="317" y="706" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">C</text>
+<rect x="340" y="670" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="346" y="685" font-size="11" fill="#1b2627">26</text>
+<rect x="346" y="692" width="26" height="20" rx="4" fill="#4a6fa8"/>
+<text x="359" y="706" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">B</text>
+<rect x="376" y="692" width="26" height="20" rx="4" fill="#8a5fa8"/>
+<text x="389" y="706" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">C</text>
+<rect x="412" y="670" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="418" y="685" font-size="11" fill="#1b2627">27</text>
+<rect x="484" y="670" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="490" y="685" font-size="11" fill="#1b2627">28</text>
+<rect x="490" y="692" width="26" height="20" rx="4" fill="#4a6fa8"/>
+<text x="503" y="706" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">B</text>
+<rect x="520" y="692" width="26" height="20" rx="4" fill="#8a5fa8"/>
+<text x="533" y="706" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">C</text>
+<rect x="52" y="722" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="58" y="737" font-size="11" fill="#1b2627">29</text>
+<rect x="124" y="722" width="68" height="48" rx="5" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="130" y="737" font-size="11" fill="#1b2627">30</text>
+<rect x="130" y="744" width="26" height="20" rx="4" fill="#0f7c80"/>
+<text x="143" y="758" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">A</text>
+<rect x="160" y="744" width="26" height="20" rx="4" fill="#4a6fa8"/>
+<text x="173" y="758" font-size="11" font-weight="700" text-anchor="middle" fill="#ffffff">B</text>
+<text x="50" y="794" font-size="11.5" fill="#5b6b6d">月・水・木・土に稼働。サロンA 15回、サロンB 10回、サロンC 9回。美容室の多い火曜定休は清掃なし</text>
+<rect x="634" y="496" width="160" height="104" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="714" y="522" font-size="11.5" text-anchor="middle" fill="#5b6b6d">1か月の稼働</text>
+<text x="714" y="560" font-size="24" font-weight="700" text-anchor="middle" fill="#1b2627">34回</text>
+<text x="714" y="584" font-size="10.5" text-anchor="middle" fill="#5b6b6d">17夜×2店</text>
+<rect x="804" y="496" width="160" height="104" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="884" y="522" font-size="11.5" text-anchor="middle" fill="#5b6b6d">1か月の報酬</text>
+<text x="884" y="560" font-size="24" font-weight="700" text-anchor="middle" fill="#c4621d">102,000円</text>
+<text x="884" y="584" font-size="10.5" text-anchor="middle" fill="#5b6b6d">34回×3,000円</text>
+<rect x="974" y="496" width="160" height="104" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="1054" y="522" font-size="11.5" text-anchor="middle" fill="#5b6b6d">年間の報酬</text>
+<text x="1054" y="560" font-size="24" font-weight="700" text-anchor="middle" fill="#1b2627">約122万円</text>
+<text x="1054" y="584" font-size="10.5" text-anchor="middle" fill="#5b6b6d">130万円の壁の内側</text>
+<text x="634" y="634" font-size="13" font-weight="700" fill="#1b2627">1か月の流れ</text>
+<rect x="634" y="648" width="116" height="96" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="646" y="672" font-size="12" font-weight="700" fill="#0f7c80">毎月20日まで</text>
+<text x="646" y="696" font-size="11.5" fill="#1b2627">翌月の稼働</text>
+<text x="646" y="714" font-size="11.5" fill="#1b2627">可能日を登録</text>
+<path d="M753,690 l6,6 l-6,6" fill="none" stroke="#9aa8aa" stroke-width="2"/>
+<rect x="762" y="648" width="116" height="96" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="774" y="672" font-size="12" font-weight="700" fill="#0f7c80">25日ごろ</text>
+<text x="774" y="696" font-size="11.5" fill="#1b2627">担当店のシフト</text>
+<text x="774" y="714" font-size="11.5" fill="#1b2627">を確認・承諾</text>
+<path d="M881,690 l6,6 l-6,6" fill="none" stroke="#9aa8aa" stroke-width="2"/>
+<rect x="890" y="648" width="116" height="96" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="902" y="672" font-size="12" font-weight="700" fill="#0f7c80">稼働日の夜</text>
+<text x="902" y="696" font-size="11.5" fill="#1b2627">清掃して写真</text>
+<text x="902" y="714" font-size="11.5" fill="#1b2627">で完了報告</text>
+<path d="M1009,690 l6,6 l-6,6" fill="none" stroke="#9aa8aa" stroke-width="2"/>
+<rect x="1018" y="648" width="116" height="96" rx="8" fill="#ffffff" stroke="#cfd9d9"/>
+<text x="1030" y="672" font-size="12" font-weight="700" fill="#0f7c80">月末締め</text>
+<text x="1030" y="696" font-size="11.5" fill="#1b2627">翌月に報酬を</text>
+<text x="1030" y="714" font-size="11.5" fill="#1b2627">受け取る（案）</text>
+<text x="634" y="772" font-size="11.5" fill="#5b6b6d">稼働の前に、教育セッション1回（研修報酬3,000円）と担当店への同行1回</text>
+<text x="634" y="792" font-size="11.5" fill="#5b6b6d">扶養の判定で業務委託の収入をどう数えるかは、加入する健康保険に確認</text>
+<text x="40" y="828" font-size="10" fill="#5b6b6d">サロン名・スタッフ名・日付は例です。数値は2026年10月時点の事業計画の前提（仮定）です。</text>
+<text x="1148" y="828" font-size="10" text-anchor="end" fill="#5b6b6d">株式会社SaNS</text>
+</svg>
+</div>
+<p class="cap">ビジネスモデル図の2枚目（A4横）です。PDF版も用意しています。</p>
+</div>
