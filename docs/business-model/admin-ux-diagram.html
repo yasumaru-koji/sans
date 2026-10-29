@@ -1,0 +1,173 @@
+<title>管理者のUIUX</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
+<style>
+/* Layout: A4横（297×210mm）の紙面を1188×840の固定座標で組み、画面では幅に合わせて縮小。印刷用の白い紙面に固定した単一テーマ */
+:root{
+  --desk:#e6ecec; --paper:#ffffff; --ink:#1b2627; --muted:#5b6b6d; --line:#d8e0e0; --panel:#f4f7f7;
+  --accent:#0f7c80; --accent-soft:#e1f0f0; --warm:#c4621d; --warm-soft:#fbeee4; --bad:#b23b3b; --bad-soft:#f8e3e3; --grey:#c9d3d4; --blue:#4a6fa8; --blue-soft:#e5ecf6;
+  --font:"Zen Kaku Gothic New","IPAGothic","Hiragino Sans","Yu Gothic",sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--desk);color:var(--ink);font-family:var(--font)}
+.wrap{padding-block:24px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;justify-items:center;gap:12px}
+.frame{width:100%;max-width:1188px;aspect-ratio:297/210;position:relative;overflow:hidden;box-shadow:0 2px 14px rgba(27,38,39,.12);background:var(--paper)}
+.paper{position:absolute;top:0;left:0;width:1188px;height:840px;background:var(--paper);transform-origin:0 0;font-size:13px;line-height:1.5}
+.cap{font-size:12px;color:var(--muted);max-width:1188px;width:100%}
+@page{size:A4 landscape;margin:0}
+@media print{body{background:#fff}.wrap{padding:0;display:block}.frame{width:297mm;height:210mm;max-width:none;box-shadow:none;aspect-ratio:auto}.cap{display:none}}
+p{margin:0}
+.abs{position:absolute}
+.title{left:40px;top:34px;font-size:26px;font-weight:900}
+.sub{left:40px;top:76px;font-size:13px;color:var(--muted)}
+.pageno{right:40px;top:44px;font-size:12px;color:var(--muted)}
+.panel{position:absolute;background:var(--panel);border-radius:14px;padding:18px 20px}
+.panel h2{margin:0;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:baseline}
+.panel h2 small{font-size:12px;font-weight:400;color:var(--muted)}
+.foot{left:40px;top:818px;font-size:10px;color:var(--muted)}
+.foot.r{left:auto;right:40px}
+/* 手順の帯 */
+.steps{display:grid;gap:12px;margin-top:12px}
+.st{background:#fff;border-radius:10px;padding:10px 12px;display:grid;gap:3px;align-content:start;position:relative;border-top:4px solid var(--accent)}
+.st .n{font-size:11px;font-weight:700;color:var(--accent)}
+.st b{font-size:14px;line-height:1.35}
+.st span{font-size:11.5px;color:var(--muted);line-height:1.45}
+.st.w{border-top-color:var(--warm)} .st.w .n{color:var(--warm)}
+.st.b{border-top-color:var(--blue)} .st.b .n{color:var(--blue)}
+.st.g{border-top-color:var(--grey)} .st.g .n{color:var(--muted)}
+.st:not(:last-child)::after{content:"";position:absolute;right:-11px;top:50%;width:0;height:0;border:5px solid transparent;border-left:7px solid #9aa8aa;transform:translateY(-50%)}
+/* 説明の箇条 */
+.pts{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.pts li{font-size:12px;line-height:1.5;padding-left:14px;position:relative}
+.pts li::before{content:"";position:absolute;left:2px;top:7px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.pts li b{color:var(--accent)}
+
+.pc{margin-top:12px;border:2px solid #9aa8aa;border-radius:10px;background:#fff;overflow:hidden;height:290px}
+.pc .bar{height:16px;background:#eef1f1;display:flex;gap:4px;align-items:center;padding:0 8px}
+.pc .bar i{width:6px;height:6px;border-radius:50%;background:var(--grey)}
+.pcbody{display:grid;grid-template-columns:96px 1fr;height:270px}
+.pcbody.one{grid-template-columns:1fr}
+.side{background:#fafcfc;border-right:1px solid var(--line);padding:8px 6px;display:grid;align-content:start;gap:3px}
+.side b{font-size:9.5px;margin-bottom:4px}
+.side span{font-size:9.5px;padding:3px 6px;border-radius:5px;display:flex;justify-content:space-between}
+.side span.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.side em{font-style:normal;background:var(--bad);color:#fff;border-radius:99px;font-size:8px;padding:0 5px}
+.main{padding:8px 10px;display:grid;align-content:start;gap:4px;position:relative}
+.mh{font-size:10.5px;font-weight:700}
+.run{display:grid;grid-template-columns:34px 1fr 40px 62px;gap:6px;align-items:center;font-size:9.5px;border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+.run em{font-style:normal;font-size:8.5px;font-weight:700;border-radius:99px;padding:1px 0;text-align:center}
+.run em.ok{background:var(--accent-soft);color:var(--accent)}
+.run em.doing{background:var(--blue-soft);color:var(--blue)}
+.run em.late{background:var(--bad-soft);color:var(--bad)}
+.todo{display:flex;justify-content:space-between;align-items:center;font-size:9.5px;border-left:3px solid var(--warm);background:#fbfcfc;padding:4px 8px;border-radius:0 6px 6px 0}
+.todo.bad{border-left-color:var(--bad)}
+.todo span{color:var(--accent);font-size:9px}
+.flow4{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.flow4 span{font-size:8.5px;border:1px solid var(--line);border-radius:5px;padding:4px 4px;text-align:center;color:var(--muted)}
+.flow4 .done{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.flow4 .now{border:1.5px solid var(--accent);color:var(--ink);font-weight:700}
+.grid{display:grid;grid-template-columns:52px repeat(6,1fr);gap:2px;width:300px;margin-top:4px}
+.gh{font-size:8px;color:var(--muted);text-align:center}
+.gs{font-size:8.5px;font-weight:700;display:flex;align-items:center}
+.c{height:30px;border-radius:4px;font-size:8.5px;display:grid;place-content:center;text-align:center;line-height:1.15}
+.c.f{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.c.off{background:repeating-linear-gradient(135deg,#f4f7f7 0 4px,#fff 4px 8px);color:var(--muted)}
+.c.open{background:var(--bad-soft);color:var(--bad);font-weight:700}
+.c.call{background:#b08221;color:#fff;font-weight:700;font-size:8px}
+.c.sel{outline:2px solid var(--ink)}
+.sp{position:absolute;right:0;top:34px;bottom:0;width:186px;background:#fff;border-left:1px solid var(--line);box-shadow:-4px 0 10px rgba(27,38,39,.08);padding:8px;display:grid;align-content:start;gap:5px}
+.cand{display:grid;grid-template-columns:1fr auto;gap:0 6px;border:1px solid var(--line);border-radius:6px;padding:4px 7px;align-items:center}
+.cand b{font-size:10px}
+.cand span{font-size:8px;color:var(--muted);grid-column:1}
+.cand em{grid-column:2;grid-row:1/3;font-style:normal;font-size:8.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:1px 7px}
+.cand em.btn{background:var(--accent);color:#fff;border-radius:5px}
+</style>
+
+<div class="wrap">
+<div class="frame" id="frame">
+<div class="paper" id="paper" role="img" aria-label="管理者（本部）のUIUX：本部の1か月の仕事、ホーム画面、シフト管理画面">
+<div class="abs title">管理者（本部）のUIUX</div>
+<div class="abs sub">本部の仕事は「シフトを自動で組む」ボタンと、空いたところの穴埋めだけ。いつ何をすべきかはホーム画面が教えてくれる</div>
+<div class="abs pageno">ビジネスモデル図 4／6</div>
+
+<div class="panel" style="left:30px;top:116px;width:1128px;height:178px">
+  <h2>① 本部の1か月の仕事<small>手順はシフト管理画面の上に①〜④で表示され、いま押すべき手順が光る</small></h2>
+  <div class="steps" style="grid-template-columns:repeat(5,1fr)">
+    <div class="st g"><span class="n">はじめに1回</span><b>店舗・スタッフを登録</b><span>店：開始時刻・定休日・鍵・料金・オーナーの連絡先<br>スタッフ：契約・口座・連絡先</span></div>
+    <div class="st"><span class="n">毎月 21日ごろ</span><b>案件を作る</b><span>定休日を除いた1か月分を全店まとめて作成。スポットで1件追加もできる</span></div>
+    <div class="st"><span class="n">ボタン1つ</span><b>シフトを自動で組む</b><span>スタッフが登録した日時から最適な人を入れ、本人へ自動で通知</span></div>
+    <div class="st w"><span class="n">随時</span><b>空いたところを埋める</b><span>「不可」や空きは、1件ずつ入れるか全体募集して希望者から確定</span></div>
+    <div class="st"><span class="n">月末</span><b>報酬を集計して支払う</b><span>完了した回数×3,000円を自動で集計。支払済の記録とCSV出力</span></div>
+  </div>
+</div>
+
+<div class="panel" style="left:30px;top:310px;width:544px;height:498px">
+  <h2>② ホーム画面<small>開けばその日にやることがわかる</small></h2>
+  <div class="pc">
+    <div class="bar"><i></i><i></i><i></i></div>
+    <div class="pcbody">
+      <div class="side"><b>締め作業 管理</b><span class="on">ホーム</span><span>シフト管理 <em>3</em></span><span>スタッフ</span><span>店舗</span><span>報酬</span></div>
+      <div class="main">
+        <div class="mh">今夜の運行　10/27（火）</div>
+        <div class="run"><span>22:00</span><b>サロンA 新宿店</b><span>佐藤</span><em class="ok">終了 23:04</em></div>
+        <div class="run"><span>22:00</span><b>サロンB 渋谷店</b><span>鈴木</span><em class="doing">清掃中</em></div>
+        <div class="run"><span>21:30</span><b>サロンC 表参道店</b><span>高橋</span><em class="late">未開始</em></div>
+        <div class="mh" style="margin-top:8px">要対応</div>
+        <div class="todo bad"><b>不可が返ってきた案件　2件</b><span>代わりの人を入れる →</span></div>
+        <div class="todo"><b>全体募集に希望あり　3件</b><span>希望者から確定 →</span></div>
+        <div class="todo"><b>3日以内に担当がいない　1件</b><span>全体募集する →</span></div>
+        <div class="todo"><b>翌月の予定が未登録　4人</b><span>催促する →</span></div>
+      </div>
+    </div>
+  </div>
+  <ul class="pts">
+    <li><b>今夜の運行</b>：清掃中・終了が自動で更新。開始時刻を15分過ぎても始まらない店は赤で表示</li>
+    <li><b>要対応</b>：押すとその案件が開き、その場で処理できる</li>
+    <li>開始・終了・不可は本部のチャットワークにも届く。<b>サロンオーナーへの開始・終了・日報の通知は自動</b></li>
+  </ul>
+</div>
+
+<div class="panel" style="left:614px;top:310px;width:544px;height:498px">
+  <h2>③ シフト管理画面<small>カレンダーが主役</small></h2>
+  <div class="pc">
+    <div class="bar"><i></i><i></i><i></i></div>
+    <div class="pcbody one">
+      <div class="main">
+        <div class="flow4"><span class="done">① 案件を作る ✓</span><span class="done">② 自動で組む ✓</span><span class="now">③ 全体募集 2件</span><span>④ 希望者から確定</span></div>
+        <div class="grid">
+          <div class="gh"></div><div class="gh">1 日</div><div class="gh">2 月</div><div class="gh">3 火</div><div class="gh">4 水</div><div class="gh">5 木</div><div class="gh">6 金</div>
+          <div class="gs">サロンA</div><div class="c f">佐藤</div><div class="c f">佐藤</div><div class="c off">休</div><div class="c f">鈴木</div><div class="c f">佐藤</div><div class="c f">高橋</div>
+          <div class="gs">サロンB</div><div class="c f">鈴木</div><div class="c open">未割当</div><div class="c f">鈴木</div><div class="c call">募集中<br>希望2</div><div class="c f sel">高橋</div><div class="c f">鈴木</div>
+          <div class="gs">サロンC</div><div class="c off">休</div><div class="c f">高橋</div><div class="c f">佐藤</div><div class="c f">高橋</div><div class="c open">未割当</div><div class="c f">佐藤</div>
+        </div>
+        <div class="sp">
+          <div class="mh">11/5（木）サロンB 21:30〜</div>
+          <div class="cand"><b>高橋</b><span>この店5回・今月8件</span><em>担当</em></div>
+          <div class="cand"><b>山田</b><span>この店2回・今月3件</span><em class="btn">入れる</em></div>
+          <div class="cand"><b>伊藤</b><span>この店0回・今月5件</span><em class="btn">入れる</em></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <ul class="pts">
+    <li><b>店舗別・スタッフ別</b>のカレンダーを切り替え。未割当は赤、募集中は黄色で一目でわかる</li>
+    <li>セルを押すと右に候補者が出て、<b>ページを移らずに入れ替え・確定</b>できる</li>
+    <li>候補の並びは「その店の経験が多い・今月の件数が少ない」順</li>
+  </ul>
+</div>
+
+<div class="abs foot">画面は開発中の試作です（2026年10月時点）。スタッフ名・サロン名・時刻は例です。</div>
+<div class="abs foot r">株式会社SaNS</div>
+</div>
+</div>
+<p class="cap">ビジネスモデル図の4枚目（A4横）です。PDF版も用意しています。</p>
+</div>
+<script>
+(function(){
+  var f=document.getElementById("frame"),p=document.getElementById("paper");
+  function fit(){p.style.transform="scale("+(f.clientWidth/1188)+")";}
+  fit();
+  if(window.ResizeObserver){new ResizeObserver(fit).observe(f);}else{window.addEventListener("resize",fit);}
+})();
+</script>
