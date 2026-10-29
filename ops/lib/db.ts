@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
@@ -102,6 +103,33 @@ function migrate(d: DatabaseSync) {
   // 全スタッフへの再募集
   if (!has("jobs", "open_call")) {
     d.exec(`ALTER TABLE jobs ADD COLUMN open_call INTEGER NOT NULL DEFAULT 0`);
+  }
+  // 当日の入店と完了報告（写真はファイル名のJSON配列）
+  if (!has("jobs", "checked_in_at")) {
+    d.exec(`ALTER TABLE jobs ADD COLUMN checked_in_at TEXT`);
+    d.exec(`ALTER TABLE jobs ADD COLUMN report_note TEXT NOT NULL DEFAULT ''`);
+    d.exec(`ALTER TABLE jobs ADD COLUMN report_photos TEXT NOT NULL DEFAULT '[]'`);
+  }
+  // スタッフへのリマインドを送った時刻（前日・当日）
+  if (!has("jobs", "reminded_eve_at")) {
+    d.exec(`ALTER TABLE jobs ADD COLUMN reminded_eve_at TEXT`);
+    d.exec(`ALTER TABLE jobs ADD COLUMN reminded_day_at TEXT`);
+  }
+  // シフトを不可で返したときの理由など
+  if (!has("offers", "note")) {
+    d.exec(`ALTER TABLE offers ADD COLUMN note TEXT NOT NULL DEFAULT ''`);
+  }
+  // サロンオーナーへの通知先（チャットワーク）と、オーナー用ページの合言葉
+  if (!has("shops", "owner_chatwork_room_id")) {
+    d.exec(`ALTER TABLE shops ADD COLUMN owner_chatwork_room_id TEXT NOT NULL DEFAULT ''`);
+    d.exec(`ALTER TABLE shops ADD COLUMN token TEXT`);
+  }
+  for (const r of d.prepare(`SELECT id FROM shops WHERE token IS NULL`).all() as { id: number }[]) {
+    d.prepare(`UPDATE shops SET token = ? WHERE id = ?`).run(crypto.randomBytes(18).toString("base64url"), r.id);
+  }
+  // 日報のアンケート回答（JSON）
+  if (!has("jobs", "report_answers")) {
+    d.exec(`ALTER TABLE jobs ADD COLUMN report_answers TEXT NOT NULL DEFAULT '{}'`);
   }
 }
 

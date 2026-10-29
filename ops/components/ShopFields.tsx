@@ -42,6 +42,10 @@ export function ShopFields({ shop }: { shop?: Shop }) {
         </div>
       </fieldset>
       <label>
+        オーナーのチャットワークのルームID（清掃開始・終了と日報を送ります）
+        <input id="owner_chatwork_room_id" name="owner_chatwork_room_id" type="text" defaultValue={shop?.owner_chatwork_room_id} placeholder="例 412345678（チャットのURLを貼っても可）" />
+      </label>
+      <label>
         スタッフへの注意事項（確定したスタッフにだけ表示）
         <textarea id="shop_note" name="note" defaultValue={shop?.note} placeholder="鍵の場所、警備の解除手順、ビルの入館方法など" />
       </label>

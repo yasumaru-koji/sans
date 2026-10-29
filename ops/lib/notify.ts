@@ -1,6 +1,6 @@
 // スタッフへのチャットワーク通知の文面と送信
 import { sendChatwork, type SendResult } from "./chatwork";
-import { KEY_METHODS } from "./constants";
+import { DECLINE_DEADLINE_DAYS, KEY_METHODS, REPORT_QUESTIONS } from "./constants";
 import * as repo from "./repo";
 import { dateLabel, minutesToLabel, yen } from "./time";
 
@@ -118,4 +118,100 @@ export function decodeSummary(v: string | undefined): NotifySummary | null {
   const m = v?.match(/^(\d+)-(\d+)-(\d+)-([01])$/);
   if (!m) return null;
   return { sent: Number(m[1]), noRoom: Number(m[2]), failed: Number(m[3]), noToken: m[4] === "1" };
+}
+
+/**
+ * 担当スタッフに作業のリマインドを送る。前日（eve）は明日の作業、当日（day）は今夜の作業。
+ * 送れた案件だけ送信済みにするので、ルームIDを直してから送り直せる
+ */
+export async function remindStaff(base: string, date: string, kind: repo.RemindKind): Promise<NotifySummary> {
+  const results: SendResult[] = [];
+  for (const j of repo.jobsToRemind(date, kind)) {
+    const staff = j.staff_id != null ? repo.getStaff(j.staff_id) : undefined;
+    if (!staff) continue;
+    const title = kind === "eve" ? "明日の締め作業のお知らせ" : "今夜の締め作業のお知らせ";
+    const body = [
+      `[info][title]${title}[/title]${dateLabel(j.date)} ${minutesToLabel(j.start_time)}〜 ${j.shop_name}\n${j.address}\n鍵：${KEY_METHODS[j.key_method]}[/info]`,
+      "お店に着いたら作業画面の「清掃を開始する」を、終わったら日報で終了を報告してください。行けなくなった場合はすぐに本部へ連絡してください。",
+      `${base}/s/${staff.token}/jobs/${j.id}`,
+    ].join("\n");
+    const r = await sendChatwork(staff.chatwork_room_id, body);
+    if (r === "sent") repo.markReminded(j.id, kind);
+    results.push(r);
+  }
+  return summarize(results);
+}
+
+/** 清掃開始・終了を本部のチャットワークに知らせる（CHATWORK_ADMIN_ROOM_ID がある場合だけ） */
+export async function notifyAdminProgress(jobId: number, kind: "start" | "end"): Promise<void> {
+  const room = process.env.CHATWORK_ADMIN_ROOM_ID;
+  const j = repo.getJob(jobId);
+  if (!room || !j) return;
+  const what = kind === "start" ? "清掃を開始しました" : "清掃を終了し、日報を提出しました";
+  await sendChatwork(room, `${dateLabel(j.date)} ${j.shop_name}：${j.staff_name}さんが${what}。`);
+}
+
+/** 本部が入れたシフトを本人にまとめて知らせる。不可の返し方と期限も添える */
+export async function notifyAssigned(base: string, items: { jobId: number; staffId: number }[]): Promise<NotifySummary> {
+  const byStaff = new Map<number, number[]>();
+  for (const i of items) byStaff.set(i.staffId, [...(byStaff.get(i.staffId) ?? []), i.jobId]);
+  const results: SendResult[] = [];
+  for (const [staffId, jobIds] of byStaff) {
+    const staff = repo.getStaff(staffId);
+    if (!staff) continue;
+    const lines = jobIds
+      .map((id) => repo.getJob(id))
+      .filter((j): j is repo.Job => !!j)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.start_time - b.start_time)
+      .map((j) => `・${dateLabel(j.date)} ${minutesToLabel(j.start_time)}〜 ${j.shop_name}（${j.area}）`);
+    results.push(
+      await sendChatwork(
+        staff.chatwork_room_id,
+        [
+          `[info][title]${staff.name}さん シフトが入りました（${lines.length}件）[/title]${lines.join("\n")}[/info]`,
+          `ご登録いただいた日時からシフトを組みました。都合が悪い日は、作業日の${DECLINE_DEADLINE_DAYS}日前までにマイページの「シフト」でチェックして「不可」を送ってください。それ以降は本部へ直接ご連絡ください。`,
+          `${staffPageUrl(base, staff)}/shifts`,
+        ].join("\n"),
+      ),
+    );
+  }
+  return summarize(results);
+}
+
+/** スタッフから不可が返ってきたことを本部のチャットワークに知らせる（CHATWORK_ADMIN_ROOM_ID がある場合だけ） */
+export async function notifyAdminDeclined(staff: repo.Staff, jobIds: number[], note: string): Promise<void> {
+  const room = process.env.CHATWORK_ADMIN_ROOM_ID;
+  if (!room || jobIds.length === 0) return;
+  const lines = jobIds
+    .map((id) => repo.getJob(id))
+    .filter((j): j is repo.Job => !!j)
+    .map((j) => `・${dateLabel(j.date)} ${j.shop_name}`);
+  await sendChatwork(room, [`${staff.name}さんから不可の連絡がありました（${lines.length}件）。代わりの人を入れてください。`, ...lines, note && `理由：${note}`].filter(Boolean).join("\n"));
+}
+
+export function ownerPageUrl(base: string, shop: Pick<repo.Shop, "token">): string {
+  return `${base}/r/${shop.token}`;
+}
+
+/** サロンオーナーへの開始・終了の文面。終了は日報（アンケートの答え・連絡・写真の枚数）つき */
+export function ownerMessage(base: string, shop: repo.Shop, j: repo.Job, kind: "start" | "end"): string {
+  const head = `${dateLabel(j.date)} ${shop.name}`;
+  if (kind === "start") return `[info][title]${head} 清掃を開始しました[/title]担当：${j.staff_name}[/info]`;
+  const answers = repo.reportAnswers(j);
+  const lines = REPORT_QUESTIONS.filter((q) => answers[q.key]?.length).map((q) => `${q.label}：${answers[q.key].join("、")}`);
+  if (j.report_note) lines.push(`連絡：${j.report_note}`);
+  const photos = repo.reportPhotos(j).length;
+  if (photos) lines.push(`写真：${photos}枚`);
+  return [
+    `[info][title]${head} 清掃が終了しました[/title]担当：${j.staff_name}${lines.length ? `\n${lines.join("\n")}` : ""}[/info]`,
+    `日報と写真はこちら：${ownerPageUrl(base, shop)}`,
+  ].join("\n");
+}
+
+/** 清掃開始・終了をサロンオーナーのチャットワークに知らせる（店舗にルームIDがある場合だけ） */
+export async function notifyShopOwner(base: string, jobId: number, kind: "start" | "end"): Promise<SendResult | null> {
+  const j = repo.getJob(jobId);
+  const shop = j && repo.getShop(j.shop_id);
+  if (!j || !shop?.owner_chatwork_room_id) return null;
+  return sendChatwork(shop.owner_chatwork_room_id, ownerMessage(base, shop, j, kind));
 }

@@ -1,8 +1,8 @@
 // 画面とサーバーアクションから使うデータ操作。SQLはここに集める。
 import crypto from "node:crypto";
 import { all, get, run, tx } from "./db";
-import { TRAVEL_BUFFER_MIN, type JobStatus, type KeyMethod, type OfferStatus, type StaffStatus } from "./constants";
-import { planConfirmations, rankCandidates, type Candidate, type MatchJob, type MatchStaff } from "./matching";
+import { DECLINE_DEADLINE_DAYS, TRAVEL_BUFFER_MIN, type JobStatus, type ReportAnswers, type KeyMethod, type OfferStatus, type StaffStatus } from "./constants";
+import { planAssignments, planConfirmations, rankCandidates, type Candidate, type MatchJob, type MatchStaff } from "./matching";
 import { daysOfMonth, weekdayOf } from "./time";
 
 export type Staff = {
@@ -48,6 +48,10 @@ export type Shop = {
   pay_per_job: number;
   note: string;
   active: number;
+  /** サロンオーナーのチャットワークのルームID（清掃開始・終了と日報を送る） */
+  owner_chatwork_room_id: string;
+  /** オーナー用ページ（ログインなし）のURLに使う合言葉 */
+  token: string;
 };
 
 export type Job = {
@@ -68,6 +72,15 @@ export type Job = {
   bonus: number;
   note: string;
   open_call: number;
+  checked_in_at: string | null;
+  completed_at: string | null;
+  report_note: string;
+  /** 完了報告の写真のファイル名（JSON配列の文字列） */
+  report_photos: string;
+  /** 日報のアンケート回答（JSONの文字列） */
+  report_answers: string;
+  reminded_eve_at: string | null;
+  reminded_day_at: string | null;
   pending_offers: number;
   interested_offers: number;
 };
@@ -207,7 +220,7 @@ export function saveAvailability(staffId: number, a: Omit<Availability, "updated
 type ShopRow = Omit<Shop, "closed_weekdays"> & { closed_weekdays: string };
 const toShop = (r: ShopRow): Shop => ({ ...r, closed_weekdays: JSON.parse(r.closed_weekdays) });
 
-export type ShopInput = Omit<Shop, "id">;
+export type ShopInput = Omit<Shop, "id" | "token" | "owner_chatwork_room_id"> & { owner_chatwork_room_id?: string };
 
 export function listShops(): Shop[] {
   return all<ShopRow>(`SELECT * FROM shops ORDER BY active DESC, area, name`).map(toShop);
@@ -221,9 +234,10 @@ export function getShop(id: number): Shop | undefined {
 export function createShop(s: ShopInput): number {
   const r = run(
     `INSERT INTO shops (name, area, address, start_time, work_minutes, closed_weekdays, key_method,
-       fee_per_job, pay_per_job, note, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       fee_per_job, pay_per_job, note, active, owner_chatwork_room_id, token) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     s.name, s.area, s.address, s.start_time, s.work_minutes, JSON.stringify(s.closed_weekdays),
-    s.key_method, s.fee_per_job, s.pay_per_job, s.note, s.active,
+    s.key_method, s.fee_per_job, s.pay_per_job, s.note, s.active, s.owner_chatwork_room_id ?? "",
+    crypto.randomBytes(18).toString("base64url"),
   );
   return Number(r.lastInsertRowid);
 }
@@ -231,9 +245,9 @@ export function createShop(s: ShopInput): number {
 export function updateShop(id: number, s: ShopInput) {
   run(
     `UPDATE shops SET name = ?, area = ?, address = ?, start_time = ?, work_minutes = ?, closed_weekdays = ?,
-       key_method = ?, fee_per_job = ?, pay_per_job = ?, note = ?, active = ? WHERE id = ?`,
+       key_method = ?, fee_per_job = ?, pay_per_job = ?, note = ?, active = ?, owner_chatwork_room_id = ? WHERE id = ?`,
     s.name, s.area, s.address, s.start_time, s.work_minutes, JSON.stringify(s.closed_weekdays),
-    s.key_method, s.fee_per_job, s.pay_per_job, s.note, s.active, id,
+    s.key_method, s.fee_per_job, s.pay_per_job, s.note, s.active, s.owner_chatwork_room_id ?? "", id,
   );
 }
 
@@ -389,7 +403,7 @@ function loadMatchStaff(month: string): MatchStaff[] {
   );
   const offerRows = all<{ staff_id: number; job_id: number; status: string }>(
     `SELECT o.staff_id, o.job_id, o.status FROM offers o JOIN jobs j ON j.id = o.job_id
-       WHERE j.date LIKE ? AND o.status IN ('pending', 'interested', 'declined')`,
+       WHERE j.date LIKE ? AND o.status IN ('pending', 'interested', 'declined', 'returned')`,
     like,
   );
 
@@ -417,8 +431,8 @@ function loadMatchStaff(month: string): MatchStaff[] {
       slots,
       monthCount: slots.length,
       experience: new Map(expRows.filter((e) => e.staff_id === s.id).map((e) => [e.shop_id, e.n])),
-      declinedJobIds: new Set(mine.filter((o) => o.status === "declined").map((o) => o.job_id)),
-      invitedJobIds: new Set(mine.filter((o) => o.status !== "declined").map((o) => o.job_id)),
+      declinedJobIds: new Set(mine.filter((o) => o.status === "declined" || o.status === "returned").map((o) => o.job_id)),
+      invitedJobIds: new Set(mine.filter((o) => o.status === "pending" || o.status === "interested").map((o) => o.job_id)),
     };
   });
 }
@@ -437,6 +451,13 @@ export function candidatesForJob(jobId: number): Candidate[] {
   const job = getJob(jobId);
   if (!job) return [];
   return rankCandidates(toMatchJob(job), loadMatchStaff(job.date.slice(0, 7)), "invite");
+}
+
+/** この案件に本部が直接入れられる人（稼働登録に合う人。案内済みかは問わない） */
+export function assignableForJob(jobId: number): Candidate[] {
+  const job = getJob(jobId);
+  if (!job) return [];
+  return rankCandidates(toMatchJob(job), loadMatchStaff(job.date.slice(0, 7)), "assign");
 }
 
 export type Applicant = Candidate & { offerId: number; respondedAt: string | null };
@@ -465,7 +486,7 @@ export function createOffers(jobId: number, staffIds: number[]): number[] {
     if (!job || !["open", "offered"].includes(job.status)) return;
     for (const staffId of staffIds) {
       const dup = get(
-        `SELECT 1 FROM offers WHERE job_id = ? AND staff_id = ? AND status IN ('pending', 'interested', 'declined', 'accepted')`,
+        `SELECT 1 FROM offers WHERE job_id = ? AND staff_id = ? AND status IN ('pending', 'interested', 'declined', 'returned', 'accepted')`,
         jobId,
         staffId,
       );
@@ -758,5 +779,272 @@ export function unfilledJobs(fromDate: string, toDate: string): Job[] {
     `${JOB_SELECT} WHERE j.date BETWEEN ? AND ? AND j.status IN ('open', 'offered') ORDER BY j.date, j.start_time`,
     fromDate,
     toDate,
+  );
+}
+
+/* ---------- 本部ホーム ---------- */
+
+/** その日の案件（中止を除く）。未確定を先に、あとは開始時刻順 */
+export function jobsOnDate(date: string): Job[] {
+  return all(
+    `${JOB_SELECT} WHERE j.date = ? AND j.status != 'cancelled'
+     ORDER BY j.status IN ('committed', 'completed'), j.start_time, sh.name`,
+    date,
+  );
+}
+
+/** 希望者が出ていて、本部の確定を待っている案件 */
+export function jobsAwaitingDecision(fromDate: string): Job[] {
+  return all(
+    `${JOB_SELECT} WHERE j.date >= ? AND j.status = 'offered'
+       AND EXISTS (SELECT 1 FROM offers o WHERE o.job_id = j.id AND o.status = 'interested')
+     ORDER BY j.date, j.start_time`,
+    fromDate,
+  );
+}
+
+/** 作業日を過ぎたのに完了になっていない確定案件 */
+export function jobsAwaitingCompletion(beforeDate: string): Job[] {
+  return all(
+    `${JOB_SELECT} WHERE j.date < ? AND j.status = 'committed' ORDER BY j.date, j.start_time`,
+    beforeDate,
+  );
+}
+
+/** 稼働中で、その月の予定をまだ登録していないスタッフ */
+export function staffWithoutAvailability(month: string): Staff[] {
+  return all(
+    `SELECT * FROM staff s WHERE s.status = 'active'
+       AND NOT EXISTS (SELECT 1 FROM availability_months a WHERE a.staff_id = s.id AND a.month = ?)
+     ORDER BY s.kana, s.name`,
+    month,
+  );
+}
+
+/* ---------- スタッフの報酬 ---------- */
+
+export type StaffPayMonth = { month: string; done: number; doneAmount: number; planned: number; plannedAmount: number; paid_at: string | null };
+
+/** スタッフの月ごとの報酬。完了分と、確定済みでまだ作業していない分を分ける */
+export function staffPayMonths(staffId: number, months: string[]): StaffPayMonth[] {
+  return months.map((month) => {
+    const r = get<{ done: number; doneAmount: number; planned: number; plannedAmount: number }>(
+      `SELECT
+         COALESCE(SUM(status = 'completed'), 0) AS done,
+         COALESCE(SUM(CASE WHEN status = 'completed' THEN pay + bonus END), 0) AS doneAmount,
+         COALESCE(SUM(status = 'committed'), 0) AS planned,
+         COALESCE(SUM(CASE WHEN status = 'committed' THEN pay + bonus END), 0) AS plannedAmount
+       FROM jobs WHERE staff_id = ? AND date LIKE ?`,
+      staffId,
+      `${month}-%`,
+    )!;
+    const p = get<{ paid_at: string }>(`SELECT paid_at FROM payouts WHERE staff_id = ? AND month = ?`, staffId, month);
+    return { month, ...r, paid_at: p?.paid_at ?? null };
+  });
+}
+
+/* ---------- 当日の入店・完了報告 ---------- */
+
+/** スタッフが入店したことを記録する。本人が担当の確定案件だけ */
+export function checkIn(jobId: number, staffId: number): boolean {
+  const r = run(
+    `UPDATE jobs SET checked_in_at = COALESCE(checked_in_at, datetime('now'))
+     WHERE id = ? AND staff_id = ? AND status = 'committed'`,
+    jobId,
+    staffId,
+  );
+  return Number(r.changes) > 0;
+}
+
+/** スタッフの完了報告。報告した時点で完了にし、報酬に集計する */
+export function reportComplete(
+  jobId: number,
+  staffId: number,
+  note: string,
+  photos: string[],
+  answers: ReportAnswers = {},
+): boolean {
+  if (photos.length === 0) return false; // 写真は必須
+  const r = run(
+    `UPDATE jobs SET status = 'completed', completed_at = datetime('now'),
+       checked_in_at = COALESCE(checked_in_at, datetime('now')), report_note = ?, report_photos = ?, report_answers = ?
+     WHERE id = ? AND staff_id = ? AND status = 'committed'`,
+    note,
+    JSON.stringify(photos),
+    JSON.stringify(answers),
+    jobId,
+    staffId,
+  );
+  return Number(r.changes) > 0;
+}
+
+export function reportAnswers(job: Pick<Job, "report_answers">): ReportAnswers {
+  try {
+    const v = JSON.parse(job.report_answers ?? "{}");
+    return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  } catch {
+    return {};
+  }
+}
+
+export function reportPhotos(job: Pick<Job, "report_photos">): string[] {
+  try {
+    const v = JSON.parse(job.report_photos ?? "[]");
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/* ---------- スタッフ詳細・店舗詳細の実績 ---------- */
+
+/** スタッフの累計完了件数と、担当した店（多い順） */
+export function staffRecord(staffId: number): { completed: number; shops: { shop_id: number; name: string; n: number }[] } {
+  const completed = get<{ n: number }>(`SELECT COUNT(*) AS n FROM jobs WHERE staff_id = ? AND status = 'completed'`, staffId)!.n;
+  const shops = all<{ shop_id: number; name: string; n: number }>(
+    `SELECT j.shop_id, sh.name, COUNT(*) AS n FROM jobs j JOIN shops sh ON sh.id = j.shop_id
+     WHERE j.staff_id = ? AND j.status = 'completed' GROUP BY j.shop_id ORDER BY n DESC, sh.name LIMIT 8`,
+    staffId,
+  );
+  return { completed, shops };
+}
+
+/** その店によく入っているスタッフ（完了件数の多い順） */
+export function shopTeam(shopId: number): { staff_id: number; name: string; n: number; last: string }[] {
+  return all(
+    `SELECT j.staff_id, st.name, COUNT(*) AS n, MAX(j.date) AS last FROM jobs j JOIN staff st ON st.id = j.staff_id
+     WHERE j.shop_id = ? AND j.status = 'completed' GROUP BY j.staff_id ORDER BY n DESC, last DESC LIMIT 8`,
+    shopId,
+  );
+}
+
+/** その店の直近の作業（新しい順） */
+export function shopRecentJobs(shopId: number, beforeDate: string, limit = 10): Job[] {
+  return all(
+    `${JOB_SELECT} WHERE j.shop_id = ? AND j.date <= ? AND j.status IN ('committed', 'completed')
+     ORDER BY j.date DESC LIMIT ?`,
+    shopId,
+    beforeDate,
+    limit,
+  );
+}
+
+/* ---------- リマインド ---------- */
+
+export type RemindKind = "eve" | "day";
+
+/** その日の確定案件のうち、まだリマインドを送っていないもの */
+export function jobsToRemind(date: string, kind: RemindKind): Job[] {
+  const col = kind === "eve" ? "reminded_eve_at" : "reminded_day_at";
+  return all(`${JOB_SELECT} WHERE j.date = ? AND j.status = 'committed' AND j.${col} IS NULL ORDER BY j.start_time`, date);
+}
+
+export function markReminded(jobId: number, kind: RemindKind) {
+  const col = kind === "eve" ? "reminded_eve_at" : "reminded_day_at";
+  run(`UPDATE jobs SET ${col} = datetime('now') WHERE id = ?`, jobId);
+}
+
+/* ---------- シフトの自動作成と不可の返答 ---------- */
+
+/** 案件にスタッフを入れる（本部が直接入れる）。記録のため確定済みの案内も残す */
+export function assignJob(jobId: number, staffId: number): boolean {
+  return tx(() => {
+    const r = run(
+      `UPDATE jobs SET status = 'committed', staff_id = ?, open_call = 0, committed_at = datetime('now'),
+         reminded_eve_at = NULL, reminded_day_at = NULL
+       WHERE id = ? AND status IN ('open', 'offered')`,
+      staffId,
+      jobId,
+    );
+    if (Number(r.changes) === 0) return false;
+    run(
+      `UPDATE offers SET status = 'closed', responded_at = COALESCE(responded_at, datetime('now'))
+       WHERE job_id = ? AND status IN ('pending', 'interested') AND staff_id != ?`,
+      jobId,
+      staffId,
+    );
+    const mine = get<{ id: number }>(`SELECT id FROM offers WHERE job_id = ? AND staff_id = ? AND status IN ('pending', 'interested')`, jobId, staffId);
+    if (mine) run(`UPDATE offers SET status = 'accepted' WHERE id = ?`, mine.id);
+    else run(`INSERT INTO offers (job_id, staff_id, status, responded_at) VALUES (?, ?, 'accepted', NULL)`, jobId, staffId);
+    return true;
+  });
+}
+
+/** 月の未割当の案件に、稼働登録から最適な人を自動で入れる（全体募集中のものは除く） */
+function assignablePlan(month: string) {
+  const jobs = listJobs(month).filter((j) => j.status === "open" || (j.status === "offered" && !j.open_call && j.interested_offers === 0));
+  return { jobs, plan: planAssignments(jobs.map(toMatchJob), loadMatchStaff(month)) };
+}
+
+/** 自動で組んだら何件入るか（画面の案内用。DBは変えない） */
+export function previewAutoAssign(month: string): number {
+  return assignablePlan(month).plan.length;
+}
+
+export function autoAssignMonth(month: string): { assigned: { jobId: number; staffId: number }[]; left: number } {
+  const { jobs, plan } = assignablePlan(month);
+  const assigned = plan.filter((p) => assignJob(p.jobId, p.staffId));
+  return { assigned, left: jobs.length - assigned.length };
+}
+
+/** 不可で返せる最終日（この日付以降の作業なら返せる） */
+export function declineFromDate(today: string): string {
+  return new Date(Date.parse(`${today}T00:00:00Z`) + DECLINE_DEADLINE_DAYS * 864e5).toISOString().slice(0, 10);
+}
+
+export type DeclineResult = "declined" | "too_late" | "invalid";
+
+/** スタッフが入ったシフトを不可で返す。作業日の7日前まで。案件は未割当に戻る */
+export function declineAssignment(staffId: number, jobId: number, today: string, note = ""): DeclineResult {
+  return tx(() => {
+    const job = get<{ date: string; status: string; staff_id: number | null }>(`SELECT date, status, staff_id FROM jobs WHERE id = ?`, jobId);
+    if (!job || job.status !== "committed" || job.staff_id !== staffId) return "invalid";
+    if (job.date < declineFromDate(today)) return "too_late";
+    run(
+      `UPDATE jobs SET status = 'open', staff_id = NULL, committed_at = NULL, checked_in_at = NULL,
+         reminded_eve_at = NULL, reminded_day_at = NULL WHERE id = ?`,
+      jobId,
+    );
+    const mine = get<{ id: number }>(`SELECT id FROM offers WHERE job_id = ? AND staff_id = ? AND status = 'accepted'`, jobId, staffId);
+    if (mine) run(`UPDATE offers SET status = 'returned', responded_at = datetime('now'), note = ? WHERE id = ?`, note, mine.id);
+    else run(`INSERT INTO offers (job_id, staff_id, status, responded_at, note) VALUES (?, ?, 'returned', datetime('now'), ?)`, jobId, staffId, note);
+    return "declined";
+  });
+}
+
+/** 最近スタッフから不可が返ってきて、まだ埋まっていない案件 */
+export function declinedOpenJobs(fromDate: string): (Job & { declined_by: string; decline_note: string })[] {
+  return all(
+    `SELECT j2.*, st.name AS declined_by, o.note AS decline_note FROM offers o
+       JOIN (${JOB_SELECT}) j2 ON j2.id = o.job_id JOIN staff st ON st.id = o.staff_id
+     WHERE o.status = 'returned' AND j2.status IN ('open', 'offered') AND j2.date >= ?
+       AND o.id = (SELECT MAX(id) FROM offers WHERE job_id = j2.id AND status = 'returned')
+     ORDER BY j2.date, j2.start_time`,
+    fromDate,
+  );
+}
+
+/* ---------- サロンオーナー用ページ ---------- */
+
+export function getShopByToken(token: string): Shop | undefined {
+  const r = get<ShopRow>(`SELECT * FROM shops WHERE token = ?`, token);
+  return r && toShop(r);
+}
+
+/** オーナー用ページの日報一覧（開始・終了の報告があるもの、新しい順） */
+export function shopReports(shopId: number, limit = 40): Job[] {
+  return all(
+    `${JOB_SELECT} WHERE j.shop_id = ? AND (j.checked_in_at IS NOT NULL OR j.status = 'completed')
+     ORDER BY j.date DESC, j.start_time DESC LIMIT ?`,
+    shopId,
+    limit,
+  );
+}
+
+/** その店の日報に付いた写真か（オーナー用ページから写真を見せるときの確認） */
+export function shopHasPhoto(shopId: number, name: string): boolean {
+  if (!/^[0-9a-f]{32}\.[a-z]+$/.test(name)) return false;
+  return all<{ report_photos: string }>(`SELECT report_photos FROM jobs WHERE shop_id = ? AND report_photos LIKE ?`, shopId, `%${name}%`).some((r) =>
+    reportPhotos(r).includes(name),
   );
 }

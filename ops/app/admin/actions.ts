@@ -12,9 +12,11 @@ import {
   notifyNotChosen,
   notifyOpenCall,
   notifyPendingOffers,
+  notifyAssigned,
+  remindStaff,
 } from "@/lib/notify";
 import * as repo from "@/lib/repo";
-import { isMonth } from "@/lib/time";
+import { isMonth, todayJst } from "@/lib/time";
 import { baseUrl } from "@/lib/url";
 
 function staffInput(fd: FormData): repo.StaffInput {
@@ -45,7 +47,7 @@ export async function updateStaffAction(id: number, fd: FormData) {
   await requireAdmin();
   repo.updateStaff(id, staffInput(fd));
   revalidatePath(`/admin/staff/${id}`);
-  redirect(`/admin/staff/${id}?saved=1`);
+  redirect(`/admin/staff/${id}?tab=info&saved=1`);
 }
 
 export async function sendInviteAction(id: number) {
@@ -66,7 +68,7 @@ export async function saveStaffAvailabilityAction(staffId: number, fd: FormData)
   await requireAdmin();
   const a = parseAvailability(fd);
   repo.saveAvailability(staffId, a);
-  redirect(`/admin/staff/${staffId}?month=${a.month}&saved=1`);
+  redirect(`/admin/staff/${staffId}?tab=avail&month=${a.month}&saved=1`);
 }
 
 function shopInput(fd: FormData): repo.ShopInput {
@@ -83,6 +85,7 @@ function shopInput(fd: FormData): repo.ShopInput {
     pay_per_job: int(fd, "pay_per_job", 3000),
     note: str(fd, "note"),
     active: fd.get("active") ? 1 : 0,
+    owner_chatwork_room_id: normalizeRoomId(str(fd, "owner_chatwork_room_id")),
   };
 }
 
@@ -91,13 +94,13 @@ export async function createShopAction(fd: FormData) {
   const input = shopInput(fd);
   if (!input.name || !input.area) redirect("/admin/shops/new?error=1");
   const id = repo.createShop(input);
-  redirect(`/admin/shops/${id}?created=1`);
+  redirect(`/admin/shops/${id}?tab=info&created=1`);
 }
 
 export async function updateShopAction(id: number, fd: FormData) {
   await requireAdmin();
   repo.updateShop(id, shopInput(fd));
-  redirect(`/admin/shops/${id}?saved=1`);
+  redirect(`/admin/shops/${id}?tab=info&saved=1`);
 }
 
 export async function generateJobsAction(fd: FormData) {
@@ -163,7 +166,14 @@ export async function offerAction(jobId: number, fd: FormData) {
   redirect(`/admin/jobs/${jobId}?offered=${ids.length}&cw=${encodeSummary(cw)}`);
 }
 
-export async function confirmAction(jobId: number, staffId: number) {
+/** シフト管理の右パネルから操作したときは、そのパネルに戻す */
+function backTo(fd: FormData | undefined, params: string): string | null {
+  const back = fd?.get("back");
+  if (typeof back !== "string" || !back.startsWith("/admin/jobs?")) return null;
+  return `${back}&${params}`;
+}
+
+export async function confirmAction(jobId: number, staffId: number, fd?: FormData) {
   await requireAdmin();
   const r = repo.confirmJob(jobId, staffId);
   if (r.result === "committed") {
@@ -172,14 +182,15 @@ export async function confirmAction(jobId: number, staffId: number) {
     if (staff) await notifyCommitted(base, staff, [jobId]);
     await notifyNotChosen(base, r.notChosen.map((id) => ({ jobId, staffId: id })));
   }
-  redirect(`/admin/jobs/${jobId}?confirm=${r.result}`);
+  redirect(backTo(fd, `confirm=${r.result}`) ?? `/admin/jobs/${jobId}?confirm=${r.result}`);
 }
 
-export async function openCallAction(jobId: number) {
+export async function openCallAction(jobId: number, fd?: FormData) {
   await requireAdmin();
   const ok = repo.startOpenCall(jobId);
   const cw = ok ? await notifyOpenCall(await baseUrl(), [jobId]) : null;
-  redirect(`/admin/jobs/${jobId}?opencall=1${cw ? `&cw=${encodeSummary(cw)}` : ""}`);
+  const q = `opencall=1${cw ? `&cw=${encodeSummary(cw)}` : ""}`;
+  redirect(backTo(fd, q) ?? `/admin/jobs/${jobId}?${q}`);
 }
 
 export async function withdrawOfferAction(jobId: number, offerId: number) {
@@ -188,13 +199,13 @@ export async function withdrawOfferAction(jobId: number, offerId: number) {
   redirect(`/admin/jobs/${jobId}`);
 }
 
-export async function jobStatusAction(jobId: number, op: "complete" | "cancel" | "release" | "reopen") {
+export async function jobStatusAction(jobId: number, op: "complete" | "cancel" | "release" | "reopen", fd?: FormData) {
   await requireAdmin();
   if (op === "complete") repo.completeJob(jobId);
   if (op === "cancel") repo.cancelJob(jobId);
   if (op === "release") repo.releaseJob(jobId);
   if (op === "reopen") repo.reopenJob(jobId);
-  redirect(`/admin/jobs/${jobId}`);
+  redirect(backTo(fd, `done=${op}`) ?? `/admin/jobs/${jobId}`);
 }
 
 export async function bonusAction(jobId: number, fd: FormData) {
@@ -213,4 +224,39 @@ export async function paidAction(staffId: number, month: string, paid: boolean) 
 export async function signOutAction() {
   await signOut();
   redirect("/login");
+}
+
+/** ホームの「完了にする」。画面はホームに戻す */
+export async function completeFromHomeAction(jobId: number) {
+  await requireAdmin();
+  repo.completeJob(jobId);
+  redirect("/admin");
+}
+
+/** ホームから前日・当日のリマインドを手動で送る */
+export async function remindAction(kind: "eve" | "day") {
+  await requireAdmin();
+  const today = todayJst();
+  const date = kind === "eve" ? new Date(Date.parse(`${today}T00:00:00Z`) + 864e5).toISOString().slice(0, 10) : today;
+  const cw = await remindStaff(await baseUrl(), date, kind);
+  redirect(`/admin?remind=${kind}&cw=${encodeSummary(cw)}`);
+}
+
+/** 稼働登録から月のシフトを自動で組み、入った人に知らせる */
+export async function autoAssignAction(fd: FormData) {
+  await requireAdmin();
+  const month = str(fd, "month");
+  if (!isMonth(month)) redirect("/admin/jobs");
+  const r = repo.autoAssignMonth(month);
+  const cw = await notifyAssigned(await baseUrl(), r.assigned);
+  redirect(`/admin/jobs?month=${month}&assigned=${r.assigned.length}&left=${r.left}&cw=${encodeSummary(cw)}`);
+}
+
+/** 右パネル・案件詳細から、この人をシフトに入れる */
+export async function assignAction(jobId: number, staffId: number, fd?: FormData) {
+  await requireAdmin();
+  const ok = repo.assignJob(jobId, staffId);
+  if (ok) await notifyAssigned(await baseUrl(), [{ jobId, staffId }]);
+  const q = `confirm=${ok ? "committed" : "invalid"}`;
+  redirect(backTo(fd, q) ?? `/admin/jobs/${jobId}?${q}`);
 }

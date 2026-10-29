@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyText } from "@/components/CopyText";
+import { JobReport } from "@/components/JobReport";
 import { JobPill, OfferPill } from "@/components/ui";
 import { KEY_METHODS } from "@/lib/constants";
 import { chatworkEnabled } from "@/lib/chatwork";
@@ -80,7 +81,7 @@ export default async function JobDetail({
             <form action={jobStatusAction.bind(null, job.id, "cancel")}><button type="submit" className="danger">中止にする</button></form>
           )}
           {job.status === "cancelled" && (
-            <form action={jobStatusAction.bind(null, job.id, "reopen")}><button type="submit" className="secondary">未案内に戻す</button></form>
+            <form action={jobStatusAction.bind(null, job.id, "reopen")}><button type="submit" className="secondary">未割当に戻す</button></form>
           )}
         </div>
         {job.status !== "completed" && (
@@ -92,6 +93,13 @@ export default async function JobDetail({
           </form>
         )}
       </section>
+
+      {(job.checked_in_at || job.status === "completed") && (
+        <section className="card">
+          <h2>当日の報告</h2>
+          <JobReport job={job} />
+        </section>
+      )}
 
       {recruiting && (
         <section className="card">
